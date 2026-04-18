@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project output
+results/*.png
+results/*.json
+results/*.csv
+*.mp4
+*.avi
+
+# Docs (keep pptx template, ignore generated)
+docs/generated/
+
+# Pytest
+.pytest_cache/
+htmlcov/
+.coverage
