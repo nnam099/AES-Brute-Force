@@ -45,7 +45,7 @@ aes-bruteforce/
 
 ### Bước 1: Clone repo
 ```bash
-git clone https://github.com/your-username/aes-bruteforce.git
+git clone https://github.com/nnam099/aes-bruteforce.git
 cd aes-bruteforce
 ```
 
