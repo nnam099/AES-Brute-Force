@@ -1,20 +1,28 @@
 """
 brute_force.py - AES Brute-Force Attack Module
-Tấn công vét cạn tuần tự (sequential brute-force) lên AES khóa ngắn
+Tấn công vét cạn tuần tự (sequential brute-force) lên AES khóa ngắn.
 """
 
 import time
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import unpad
+from typing import Callable, Dict, Optional
+from aes_engine import PureAES, unpad
+
+SUPPORTED_KEY_BITS = [8, 12, 16, 20, 24, 32]
+CallbackType = Callable[[int, int, float], None]
+
+
+def validate_key_bits(bits: int) -> None:
+    """Kiểm tra xem độ dài khóa có nằm trong danh sách hỗ trợ."""
+    if bits not in SUPPORTED_KEY_BITS:
+        raise ValueError(
+            f"Độ dài khóa không hợp lệ: {bits}. Hỗ trợ: {SUPPORTED_KEY_BITS}"
+        )
 
 
 def is_valid_plaintext(data: bytes) -> bool:
     """
-    Kiểm tra xem bytes có phải là plaintext ASCII hợp lệ không.
-    Chỉ check 4 bytes đầu để tránh đụng vùng padding.
-
-    Returns:
-        bool: True nếu 4 bytes đầu đều là ký tự ASCII in được
+    Kiểm tra xem bytes có phải là plaintext ASCII hợp lệ.
+    Chỉ kiểm tra 4 bytes đầu để loại bỏ kết quả giải mã vô nghĩa.
     """
     check_len = min(len(data), 4)
     if check_len == 0:
@@ -25,48 +33,46 @@ def is_valid_plaintext(data: bytes) -> bool:
 def brute_force_aes(
     ciphertext: bytes,
     key_bits: int,
-    callback=None,
-    stop_flag=None
-) -> dict:
+    callback: Optional[CallbackType] = None,
+    stop_flag: Optional[object] = None,
+) -> Dict[str, object]:
     """
-    Brute-force tuần tự đơn giản: thử tất cả khóa từ 0 đến 2^key_bits - 1.
+    Thử tất cả khóa từ 0 đến 2^key_bits - 1.
 
     Args:
         ciphertext: Dữ liệu đã mã hóa
-        key_bits: Độ dài khóa cần tìm (bits)
-        callback: Hàm callback(current, total, elapsed) để cập nhật tiến trình
-        stop_flag: Object có thuộc tính .is_set() để dừng brute-force
+        key_bits: Độ dài khóa cần tìm
+        callback: Hàm callback(current, total, elapsed)
+        stop_flag: Object có is_set() để dừng sớm
 
     Returns:
-        dict: kết quả brute-force
+        dict: Kết quả brute-force
     """
-    max_keys = 2 ** key_bits
-    key_bytes_len = (key_bits + 7) // 8  # ceil: số bytes cần cho key
+    validate_key_bits(key_bits)
+
+    max_keys = 1 << key_bits
+    key_bytes_len = (key_bits + 7) // 8
     start_time = time.time()
     keys_tested = 0
-
-    # Tần suất gọi callback (khoảng 100 lần trong toàn bộ keyspace)
-    UPDATE_INTERVAL = max(1, max_keys // 100)
+    update_interval = max(1, min(100_000, max_keys // 100))
 
     for i in range(max_keys):
-        # Dừng sớm nếu có tín hiệu
         if stop_flag is not None and stop_flag.is_set():
             break
 
-        # Tạo key: phần thực (key_bytes_len bytes) + padding zeros → 16 bytes
+        current = i + 1
         key_part = i.to_bytes(key_bytes_len, byteorder='big')
         key = key_part.ljust(16, b'\x00')
 
         try:
-            cipher = AES.new(key, AES.MODE_ECB)
+            cipher = PureAES(key)
             decrypted_raw = cipher.decrypt(ciphertext)
 
-            # Kiểm tra nhanh: 4 bytes đầu phải là ASCII printable
             if is_valid_plaintext(decrypted_raw):
                 try:
-                    plaintext = unpad(decrypted_raw, AES.block_size).decode('utf-8')
+                    plaintext = unpad(decrypted_raw, 16).decode('utf-8')
                     elapsed = time.time() - start_time
-                    kps = keys_tested / elapsed if elapsed > 0 else 0
+                    kps = current / elapsed if elapsed > 0 else 0
 
                     return {
                         'found': True,
@@ -75,20 +81,18 @@ def brute_force_aes(
                         'key_full_hex': key.hex().upper(),
                         'plaintext': plaintext,
                         'elapsed_seconds': elapsed,
-                        'keys_tested': keys_tested + 1,
+                        'keys_tested': current,
                         'keys_per_second': kps,
                         'total_keyspace': max_keys,
-                        'percent_searched': ((i + 1) / max_keys) * 100
+                        'percent_searched': (current / max_keys) * 100,
                     }
                 except (ValueError, UnicodeDecodeError):
-                    pass  # Padding sai hoặc không phải UTF-8
+                    pass
         except Exception:
             pass
 
-        keys_tested += 1
-
-        # Gọi callback để cập nhật UI
-        if callback is not None and keys_tested % UPDATE_INTERVAL == 0:
+        keys_tested = current
+        if callback is not None and keys_tested % update_interval == 0:
             elapsed = time.time() - start_time
             callback(keys_tested, max_keys, elapsed)
 
@@ -105,11 +109,11 @@ def brute_force_aes(
         'keys_tested': keys_tested,
         'keys_per_second': kps,
         'total_keyspace': max_keys,
-        'percent_searched': 100.0
+        'percent_searched': 100.0,
     }
 
 
-def estimate_time(key_bits: int, keys_per_second: float = None) -> dict:
+def estimate_time(key_bits: int, keys_per_second: float = None) -> Dict[str, object]:
     """
     Ước tính thời gian brute-force dựa trên lý thuyết.
 
@@ -120,7 +124,8 @@ def estimate_time(key_bits: int, keys_per_second: float = None) -> dict:
     Returns:
         dict: Thông tin ước tính
     """
-    keyspace = 2 ** key_bits
+    validate_key_bits(key_bits)
+    keyspace = 1 << key_bits
 
     if keys_per_second is None or keys_per_second <= 0:
         keys_per_second = 50_000
@@ -128,17 +133,16 @@ def estimate_time(key_bits: int, keys_per_second: float = None) -> dict:
     avg_time = (keyspace / 2) / keys_per_second
     worst_time = keyspace / keys_per_second
 
-    def format_time(seconds):
+    def format_time(seconds: float) -> str:
         if seconds < 60:
             return f"{seconds:.1f} giây"
-        elif seconds < 3600:
-            return f"{seconds/60:.1f} phút"
-        elif seconds < 86400:
-            return f"{seconds/3600:.1f} giờ"
-        elif seconds < 86400 * 365:
-            return f"{seconds/86400:.1f} ngày"
-        else:
-            return f"{seconds/86400/365:.2e} năm"
+        if seconds < 3600:
+            return f"{seconds / 60:.1f} phút"
+        if seconds < 86400:
+            return f"{seconds / 3600:.1f} giờ"
+        if seconds < 86400 * 365:
+            return f"{seconds / 86400:.1f} ngày"
+        return f"{seconds / 86400 / 365:.2e} năm"
 
     return {
         'key_bits': key_bits,
@@ -148,7 +152,7 @@ def estimate_time(key_bits: int, keys_per_second: float = None) -> dict:
         'avg_time_seconds': avg_time,
         'worst_time_seconds': worst_time,
         'avg_time_formatted': format_time(avg_time),
-        'worst_time_formatted': format_time(worst_time)
+        'worst_time_formatted': format_time(worst_time),
     }
 
 

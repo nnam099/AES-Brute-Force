@@ -73,13 +73,13 @@ python main.py
 ### Chế độ dòng lệnh (CLI)
 ```bash
 cd src
-python main.py --cli
+python main.py --cli --text SECRET --bits 16
 ```
 
 ### Benchmark riêng lẻ
 ```bash
 cd src
-python benchmark.py
+python benchmark.py --bits 8 12 16 --text SECRET
 ```
 
 ### Chạy tests

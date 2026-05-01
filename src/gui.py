@@ -44,7 +44,7 @@ class AESBruteForceApp:
         ).pack()
         tk.Label(
             hdr,
-            text="Môn: An toàn thông tin  |  Python + pycryptodome + Tkinter",
+            text="Môn: An toàn thông tin  |  Python thuần (From Scratch) + Tkinter",
             font=("Consolas", 9),
             bg="#313244", fg="#6c7086"
         ).pack()
@@ -178,8 +178,11 @@ class AESBruteForceApp:
         # Buttons
         bf = tk.Frame(frame, bg="#1e1e2e")
         bf.grid(row=5, column=0, columnspan=3, pady=6)
-        self._btn(bf, "⚡  Bắt đầu tấn công", self._do_brute_force, "#f38ba8").pack(side=tk.LEFT, padx=6)
-        self._btn(bf, "⏹  Dừng", self._do_stop, "#fab387").pack(side=tk.LEFT, padx=6)
+        self.bf_btn_start = self._btn(bf, "⚡  Bắt đầu tấn công", self._do_brute_force, "#f38ba8")
+        self.bf_btn_start.pack(side=tk.LEFT, padx=6)
+        self.bf_btn_stop = self._btn(bf, "⏹  Dừng", self._do_stop, "#fab387")
+        self.bf_btn_stop.pack(side=tk.LEFT, padx=6)
+        self.bf_btn_stop.configure(state=tk.DISABLED)
         self._btn(bf, "🗑  Xóa log", self._clear_bf, "#6c7086").pack(side=tk.LEFT, padx=6)
 
         # Log
@@ -280,7 +283,7 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
   TÀI LIỆU THAM KHẢO
 ══════════════════════════════════════════════════════════
 • FIPS-197: https://csrc.nist.gov/publications/detail/fips/197/final
-• PyCryptodome: https://www.pycryptodome.org/
+• Triển khai thuật toán mã hóa AES từ Scratch (Python thuần)
 • Stallings, W. "Cryptography and Network Security" (8th ed.)
 • Paar, C. "Understanding Cryptography"
 ══════════════════════════════════════════════════════════
@@ -404,12 +407,20 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
 
         self._bf_thread = threading.Thread(target=run, daemon=True)
         self._bf_thread.start()
+        self._set_bf_button_state(running=True)
         self.status_var.set(f"⚡ Đang brute-force {bits}-bit key...")
 
     def _do_stop(self):
         self._stop_flag.set()
+        self._set_bf_button_state(running=False)
         self.status_var.set("⏹ Đã yêu cầu dừng...")
         self._log("⏹ Người dùng dừng brute-force.")
+
+    def _set_bf_button_state(self, running: bool):
+        state_start = tk.DISABLED if running else tk.NORMAL
+        state_stop = tk.NORMAL if running else tk.DISABLED
+        self.bf_btn_start.configure(state=state_start)
+        self.bf_btn_stop.configure(state=state_stop)
 
     def _clear_enc(self):
         self.enc_output.delete('1.0', tk.END)
@@ -453,6 +464,8 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
         else:
             self._log("❌ Không tìm thấy (đã dừng hoặc hết keyspace)")
             self.status_var.set("❌ Brute-force kết thúc không thành công")
+
+        self._set_bf_button_state(running=False)
 
     def _log(self, msg: str):
         self.bf_log.insert(tk.END, msg + "\n")
