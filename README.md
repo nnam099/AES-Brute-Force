@@ -203,4 +203,3 @@ for i in range(2 ** key_bits):           # Thử tất cả khóa
 
 ---
 
-*🎯 Chúc nhóm đồ án thành công!*
