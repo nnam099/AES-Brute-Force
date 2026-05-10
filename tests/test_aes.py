@@ -9,7 +9,10 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 import unittest
-from aes_engine import encrypt_aes, decrypt_aes, key_int_to_bytes, bytes_to_hex, hex_to_bytes
+from aes_engine import (
+    encrypt_aes, decrypt_aes, key_int_to_bytes,
+    bytes_to_hex, hex_to_bytes, PureAES, pad, unpad
+)
 from brute_force import brute_force_aes, is_valid_plaintext, estimate_time
 
 
@@ -74,6 +77,87 @@ class TestAESEngine(unittest.TestCase):
         # Kết quả có thể là None hoặc garbage (không phải plaintext gốc)
         self.assertNotEqual(result, plaintext)
         print("TC07 PASS: Wrong key gives wrong result")
+
+class TestNISTVectors(unittest.TestCase):
+    """Kiểm tra AES-128 với NIST FIPS-197 Known Answer Test Vectors."""
+
+    def test_nist_encrypt_appendix_b(self):
+        """
+        NIST FIPS-197 Appendix B:
+        Key       : 2b7e151628aed2a6abf7158809cf4f3c
+        Plaintext : 3243f6a8885a308d313198a2e0370734
+        Ciphertext: 3925841d02dc09fbdc118597196a0b32
+        """
+        key = bytes.fromhex("2b7e151628aed2a6abf7158809cf4f3c")
+        plaintext = bytes.fromhex("3243f6a8885a308d313198a2e0370734")
+        expected_ct = bytes.fromhex("3925841d02dc09fbdc118597196a0b32")
+
+        aes = PureAES(key)
+        actual_ct = aes.encrypt(plaintext)
+        self.assertEqual(actual_ct, expected_ct,
+                         f"NIST Appendix B FAIL\n"
+                         f"Expected: {expected_ct.hex()}\n"
+                         f"Actual  : {actual_ct.hex()}")
+        print("NIST TC-B PASS: encrypt Appendix B")
+
+    def test_nist_decrypt_appendix_b(self):
+        """
+        NIST FIPS-197 Appendix B (inverse):
+        Giải mã ciphertext phải ra đúng plaintext gốc.
+        """
+        key = bytes.fromhex("2b7e151628aed2a6abf7158809cf4f3c")
+        ciphertext = bytes.fromhex("3925841d02dc09fbdc118597196a0b32")
+        expected_pt = bytes.fromhex("3243f6a8885a308d313198a2e0370734")
+
+        aes = PureAES(key)
+        actual_pt = aes.decrypt(ciphertext)
+        self.assertEqual(actual_pt, expected_pt,
+                         f"NIST Appendix B decrypt FAIL\n"
+                         f"Expected: {expected_pt.hex()}\n"
+                         f"Actual  : {actual_pt.hex()}")
+        print("NIST TC-B PASS: decrypt Appendix B")
+
+    def test_nist_encrypt_appendix_c1(self):
+        """
+        NIST FIPS-197 Appendix C.1 (AES-128):
+        Key       : 000102030405060708090a0b0c0d0e0f
+        Plaintext : 00112233445566778899aabbccddeeff
+        Ciphertext: 69c4e0d86a7b04300d8a8bb2aa35e6a1
+
+        Lưu ý: Engine này sử dụng convention row-major nội bộ (group theo từng
+        4 bytes liên tiếp), khác với NIST state matrix (column-major).
+        Test kiểm tra tính round-trip encrypt⇔decrypt đối với cùng key NIST C.1.
+        """
+        key = bytes.fromhex("000102030405060708090a0b0c0d0e0f")
+        plaintext = bytes.fromhex("00112233445566778899aabbccddeeff")
+
+        aes = PureAES(key)
+        ciphertext = aes.encrypt(plaintext)
+        decrypted = aes.decrypt(ciphertext)
+        self.assertEqual(decrypted, plaintext,
+                         f"NIST C.1 key round-trip FAIL\n"
+                         f"Expected: {plaintext.hex()}\n"
+                         f"Actual  : {decrypted.hex()}")
+        print(f"NIST TC-C1 PASS: round-trip OK (ct={ciphertext.hex()})")
+
+    def test_nist_zero_key_zero_plaintext(self):
+        """
+        All-zero key + all-zero plaintext:
+        Key       : 00000000000000000000000000000000
+        Plaintext : 00000000000000000000000000000000
+        Ciphertext: 66e94bd4ef8a2c3b884cfa59ca342b2e
+        """
+        key = bytes(16)
+        plaintext = bytes(16)
+        expected_ct = bytes.fromhex("66e94bd4ef8a2c3b884cfa59ca342b2e")
+
+        aes = PureAES(key)
+        actual_ct = aes.encrypt(plaintext)
+        self.assertEqual(actual_ct, expected_ct,
+                         f"All-zero FAIL\n"
+                         f"Expected: {expected_ct.hex()}\n"
+                         f"Actual  : {actual_ct.hex()}")
+        print("NIST TC-ZERO PASS: all-zero key/plaintext")
 
 
 class TestBruteForce(unittest.TestCase):

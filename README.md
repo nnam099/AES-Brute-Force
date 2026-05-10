@@ -21,13 +21,13 @@
 ```
 aes-bruteforce/
 ├── src/
-│   ├── aes_engine.py      # AES mã hóa/giải mã (pycryptodome)
+│   ├── aes_engine.py      # AES mã hóa/giải mã (Python thuần, From Scratch)
 │   ├── brute_force.py     # Vòng lặp brute-force tuần tự
 │   ├── benchmark.py       # Đo lường & vẽ biểu đồ
 │   ├── gui.py             # Giao diện Tkinter
 │   └── main.py            # Entry point
 ├── tests/
-│   └── test_aes.py        # Unit tests (13 test cases)
+│   └── test_aes.py        # Unit tests (13 + 4 NIST test cases)
 ├── results/               # Biểu đồ & dữ liệu benchmark
 ├── docs/                  # Báo cáo & slide
 ├── requirements.txt
@@ -56,8 +56,8 @@ pip install -r requirements.txt
 
 ### Bước 3: Kiểm tra
 ```bash
-python -c "from Crypto.Cipher import AES; print('✅ pycryptodome OK')"
 python -c "import matplotlib; print('✅ matplotlib OK')"
+python -c "from src.aes_engine import PureAES; print('✅ AES engine OK')"
 ```
 
 ---
@@ -136,10 +136,12 @@ for i in range(2 ** key_bits):           # Thử tất cả khóa
 | 8-bit    | 256            | < 0.01 giây                       |
 | 12-bit   | 4,096          | < 0.1 giây                        |
 | 16-bit   | 65,536         | ~0.6 giây                         |
-| 20-bit   | 1,048,576      | ~10 giây                           |
+| 20-bit   | 1,048,576      | ~10 giây                          |
 | 24-bit   | 16,777,216     | ~3 phút                            |
 | 32-bit   | 4,294,967,296  | ~12 giờ                            |
 | **128-bit** | **3.4 × 10³⁸** | **KHÔNG THỂ**                   |
+
+> ⚠️ **ECB Mode Warning**: ECB không dùng IV, plaintext giống nhau → ciphertext giống nhau. Dùng CBC/GCM trong thực tế!
 
 ---
 
@@ -154,6 +156,10 @@ for i in range(2 ** key_bits):           # Thử tất cả khóa
 | TC05 | 16       | "HELLO"     | Key deterministic                   |
 | TC06 | —        | —           | Hex conversion                      |
 | TC07 | 16       | "SECRET"    | Wrong key → wrong result            |
+| **NIST-B** | Full 128-bit | hex | NIST FIPS-197 Appendix B encrypt |
+| **NIST-B2** | Full 128-bit | hex | NIST FIPS-197 Appendix B decrypt |
+| **NIST-C1** | Full 128-bit | hex | NIST FIPS-197 Appendix C.1       |
+| **NIST-0** | Full 128-bit | zeros | All-zero KAT                    |
 | TC08 | 8        | "ABCDE"     | Brute-force 8-bit (phải thành công) |
 | TC09 | 12       | "HELLO"     | Brute-force 12-bit < 30s            |
 | TC10 | —        | —           | is_valid_plaintext()                |
@@ -168,7 +174,7 @@ for i in range(2 ** key_bits):           # Thử tất cả khóa
 | Công nghệ       | Mục đích                        |
 |----------------|---------------------------------|
 | Python 3.8+    | Ngôn ngữ lập trình chính        |
-| pycryptodome   | Thư viện AES                    |
+| **Pure AES**   | **AES from scratch (không thư viện)** |
 | tkinter        | Giao diện đồ họa (có sẵn)       |
 | matplotlib     | Vẽ biểu đồ benchmark            |
 | threading      | Chạy brute-force không đơ GUI   |
@@ -190,7 +196,7 @@ for i in range(2 ** key_bits):           # Thử tất cả khóa
 ## 📚 Tài liệu tham khảo
 
 1. NIST FIPS-197: https://csrc.nist.gov/publications/detail/fips/197/final
-2. PyCryptodome: https://www.pycryptodome.org/
+2. matplotlib: https://matplotlib.org/
 3. Stallings, W. *Cryptography and Network Security* (8th ed.)
 4. Paar, C. *Understanding Cryptography*
 

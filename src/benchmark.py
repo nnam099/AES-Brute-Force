@@ -8,7 +8,7 @@ import argparse
 import json
 from pathlib import Path
 import time
-from typing import List
+from typing import List, Sequence
 
 import matplotlib
 matplotlib.use('Agg')  # Non-interactive backend

@@ -81,11 +81,13 @@ def multiply(x: int, y: int) -> int:
 # =====================================================================
 
 def bytes2matrix(text: bytes) -> list:
-    """Chuyển đổi block 16 bytes thành ma trận trạng thái 4x4 (column-major)."""
+    """Chuyển đổi block 16 bytes thành ma trận trạng thái 4x4.
+    Convention nội bộ: state[group][element] trong đó mỗi group = 4 bytes liên tiếp.
+    Thứ tự bytes: b0..b3 = group0, b4..b7 = group1, ..."""
     return [list(text[i:i+4]) for i in range(0, len(text), 4)]
 
 def matrix2bytes(matrix: list) -> bytes:
-    """Chuyển đổi ma trận trạng thái 4x4 (column-major) thành block 16 bytes."""
+    """Chuyển đổi ma trận trạng thái 4x4 thành block 16 bytes."""
     return bytes(sum(matrix, []))
 
 def add_round_key(state: list, key_schedule: list, round_num: int):

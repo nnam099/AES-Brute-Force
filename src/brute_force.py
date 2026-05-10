@@ -21,13 +21,12 @@ def validate_key_bits(bits: int) -> None:
 
 def is_valid_plaintext(data: bytes) -> bool:
     """
-    Kiểm tra xem bytes có phải là plaintext ASCII hợp lệ.
-    Chỉ kiểm tra 4 bytes đầu để loại bỏ kết quả giải mã vô nghĩa.
+    Kiểm tra xem bytes (đã bỏ padding) có phải là plaintext ASCII hợp lệ.
+    Chấp nhận ký tự printable ASCII (0x20-0x7E) và whitespace tab/newline.
     """
-    check_len = min(len(data), 4)
-    if check_len == 0:
+    if len(data) == 0:
         return False
-    return all(32 <= b <= 126 for b in data[:check_len])
+    return all(32 <= b <= 126 or b in (9, 10, 13) for b in data)
 
 
 def brute_force_aes(
@@ -68,9 +67,16 @@ def brute_force_aes(
             cipher = PureAES(key)
             decrypted_raw = cipher.decrypt(ciphertext)
 
-            if is_valid_plaintext(decrypted_raw):
+            # Unpad trước, nếu padding không hợp lệ → bỏ qua ngay
+            try:
+                unpadded = unpad(decrypted_raw, 16)
+            except ValueError:
+                continue
+
+            # Validate toàn bộ dữ liệu sau unpad
+            if is_valid_plaintext(unpadded):
                 try:
-                    plaintext = unpad(decrypted_raw, 16).decode('utf-8')
+                    plaintext = unpadded.decode('utf-8')
                     elapsed = time.time() - start_time
                     kps = current / elapsed if elapsed > 0 else 0
 
@@ -86,7 +92,7 @@ def brute_force_aes(
                         'total_keyspace': max_keys,
                         'percent_searched': (current / max_keys) * 100,
                     }
-                except (ValueError, UnicodeDecodeError):
+                except UnicodeDecodeError:
                     pass
         except Exception:
             pass
