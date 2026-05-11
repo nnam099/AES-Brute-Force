@@ -101,6 +101,25 @@ class AESBruteForceApp:
                 font=("Segoe UI", 10, "bold"), cursor="hand2"
             ).pack(side=tk.LEFT, padx=6)
 
+        self._label(input_frame, "🔢 Key cố định (tùy chọn):").grid(row=2, column=0, sticky='w', pady=8, padx=(0, 10))
+        fixed_key_frame = tk.Frame(input_frame, bg="#24273A")
+        fixed_key_frame.grid(row=2, column=1, sticky='w', pady=8)
+        self.enc_use_fixed_key = tk.BooleanVar(value=False)
+        tk.Checkbutton(
+            fixed_key_frame, text="Dùng key cố định", variable=self.enc_use_fixed_key,
+            bg="#24273A", fg="#CAD3F5", selectcolor="#1E2030",
+            activebackground="#24273A", activeforeground="#8AADF4",
+            font=("Segoe UI", 10, "bold")
+        ).pack(side=tk.LEFT)
+        self.enc_key_int_entry = self._entry(fixed_key_frame, width=18)
+        self.enc_key_int_entry.insert(0, "142")
+        self.enc_key_int_entry.pack(side=tk.LEFT, padx=10)
+        tk.Label(
+            fixed_key_frame,
+            text="(vd: 142 hoặc 0x8E)",
+            font=("Segoe UI", 9), bg="#24273A", fg="#A5ADCB"
+        ).pack(side=tk.LEFT)
+
         # Actions
         act_frame = tk.Frame(frame, bg="#24273A")
         act_frame.pack(fill=tk.X, padx=20, pady=5)
@@ -139,8 +158,13 @@ class AESBruteForceApp:
         cfg_frame.pack(fill=tk.X, padx=20)
 
         self._label(cfg_frame, "🔐 Ciphertext (hex):").grid(row=0, column=0, sticky='w', pady=8, padx=(0, 10))
-        self.bf_cipher_display = self._entry(cfg_frame, width=54)
-        self.bf_cipher_display.configure(state='readonly')
+        self.bf_cipher_display = scrolledtext.ScrolledText(
+            cfg_frame, height=2, width=54,
+            font=("Consolas", 10),
+            bg="#1E2030", fg="#CAD3F5", insertbackground="#CAD3F5",
+            relief=tk.FLAT, borderwidth=8, highlightthickness=0,
+            wrap=tk.WORD
+        )
         self.bf_cipher_display.grid(row=0, column=1, sticky='w', pady=8)
 
         self._label(cfg_frame, "🔑 Độ dài khóa:").grid(row=1, column=0, sticky='w', pady=8, padx=(0, 10))
@@ -340,7 +364,10 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
         bits = self.enc_key_bits.get()
 
         try:
-            ciphertext, key, key_int = encrypt_aes(plaintext, bits)
+            key_int = None
+            if self.enc_use_fixed_key.get():
+                key_int = self._parse_key_int(self.enc_key_int_entry.get().strip(), bits)
+            ciphertext, key, key_int = encrypt_aes(plaintext, bits, key_int=key_int)
         except Exception as e:
             messagebox.showerror("Lỗi mã hóa", str(e))
             return
@@ -351,10 +378,7 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
         self._encrypt_key_bits = bits
 
         # Hiển thị trong tab brute-force
-        self.bf_cipher_display.configure(state='normal')
-        self.bf_cipher_display.delete(0, tk.END)
-        self.bf_cipher_display.insert(0, bytes_to_hex(ciphertext))
-        self.bf_cipher_display.configure(state='readonly')
+        self._set_bf_ciphertext(bytes_to_hex(ciphertext))
         self.bf_key_bits.set(bits)
 
         # Output
@@ -395,10 +419,6 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
 
     def _do_brute_force(self):
         """Bắt đầu brute-force trong thread riêng."""
-        if self._ciphertext is None:
-            messagebox.showwarning("Cảnh báo", "Hãy mã hóa trước ở tab 'Mã hóa'!")
-            return
-
         if self._bf_thread and self._bf_thread.is_alive():
             messagebox.showinfo("Thông báo", "Brute-force đang chạy!")
             return
@@ -411,7 +431,10 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
 
         self._stop_flag.clear()
         bits = self.bf_key_bits.get()
-        ciphertext = self._ciphertext
+        ciphertext = self._get_ciphertext_from_input()
+        if ciphertext is None:
+            messagebox.showwarning("Cảnh báo", "Vui lòng nhập ciphertext hex hợp lệ!")
+            return
 
         self.bf_log.delete('1.0', tk.END)
         self.bf_progress['value'] = 0
@@ -422,7 +445,8 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
 
         self._log(f"⚡ Bắt đầu brute-force {bits}-bit AES...")
         self._log(f"   Keyspace: 2^{bits} = {2**bits:,} keys")
-        self._log(f"   Key thực sự cần tìm: {self._encrypt_key_int}")
+        if self._encrypt_key_int is not None:
+            self._log(f"   Key thực sự cần tìm: {self._encrypt_key_int}")
         self._log("─" * 52)
 
         def run():
@@ -455,11 +479,13 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
         self.enc_output.delete('1.0', tk.END)
         self.enc_plaintext.delete(0, tk.END)
         self.enc_plaintext.insert(0, "HELLO WORLD")
+        self.enc_use_fixed_key.set(False)
 
     def _clear_bf(self):
         self.bf_log.delete('1.0', tk.END)
         self.bf_progress['value'] = 0
         self.bf_pct_label.configure(text="0%")
+        self.bf_cipher_display.delete('1.0', tk.END)
 
     # ─────────────────────────────────────────────
     # UI UPDATE (gọi từ main thread qua after())
@@ -522,3 +548,30 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
             activebackground="#CAD3F5", activeforeground="#1E2030",
             relief=tk.FLAT, padx=16, pady=8, cursor="hand2", borderwidth=0
         )
+
+    def _set_bf_ciphertext(self, hex_text: str) -> None:
+        self.bf_cipher_display.delete('1.0', tk.END)
+        self.bf_cipher_display.insert(tk.END, hex_text)
+
+    def _get_ciphertext_from_input(self) -> bytes | None:
+        raw = self.bf_cipher_display.get('1.0', tk.END).strip()
+        if not raw:
+            return None
+        cleaned = "".join(raw.split())
+        if len(cleaned) % 2 != 0:
+            return None
+        try:
+            return bytes.fromhex(cleaned)
+        except ValueError:
+            return None
+
+    def _parse_key_int(self, raw: str, key_bits: int) -> int:
+        if raw.lower().startswith("0x"):
+            value = int(raw, 16)
+        else:
+            value = int(raw, 10)
+
+        max_val = (1 << key_bits) - 1
+        if value < 0 or value > max_val:
+            raise ValueError(f"Key phai nam trong [0, 2^{key_bits} - 1].")
+        return value

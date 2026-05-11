@@ -4,7 +4,8 @@ Tấn công vét cạn tuần tự (sequential brute-force) lên AES khóa ngắ
 """
 
 import time
-from typing import Callable, Dict, Optional
+from multiprocessing import Pool, cpu_count
+from typing import Callable, Dict, Optional, Tuple
 from aes_engine import PureAES, unpad
 
 SUPPORTED_KEY_BITS = [8, 12, 16, 20, 24, 32]
@@ -29,11 +30,69 @@ def is_valid_plaintext(data: bytes) -> bool:
     return all(32 <= b <= 126 or b in (9, 10, 13) for b in data)
 
 
+def score_plaintext(data: bytes) -> float:
+    """
+    Tinh diem plaintext theo ti le ky tu ASCII printable.
+    Tra ve gia tri tu 0.0 den 1.0.
+    """
+    if len(data) == 0:
+        return 0.0
+    printable = sum(1 for b in data if 32 <= b <= 126 or b in (9, 10, 13))
+    return printable / len(data)
+
+
+def _bruteforce_worker(args: Tuple[int, int, int, bytes, float]) -> Dict[str, object]:
+    """
+    Worker quet mot doan keyspace [start, end).
+    """
+    start, end, key_bits, ciphertext, score_threshold = args
+    key_bytes_len = (key_bits + 7) // 8
+
+    for i in range(start, end):
+        key_part = i.to_bytes(key_bytes_len, byteorder='big')
+        key = key_part.ljust(16, b'\x00')
+
+        try:
+            cipher = PureAES(key)
+            decrypted_raw = cipher.decrypt(ciphertext)
+
+            try:
+                unpadded = unpad(decrypted_raw, 16)
+            except ValueError:
+                continue
+
+            score = score_plaintext(unpadded)
+            if score >= score_threshold:
+                try:
+                    plaintext = unpadded.decode('utf-8')
+                    return {
+                        'found': True,
+                        'key_int': i,
+                        'key_hex': key_part.hex().upper(),
+                        'key_full_hex': key.hex().upper(),
+                        'plaintext': plaintext,
+                        'plaintext_score': score,
+                        'keys_tested': (i - start + 1),
+                    }
+                except UnicodeDecodeError:
+                    pass
+        except Exception:
+            pass
+
+    return {
+        'found': False,
+        'keys_tested': (end - start),
+    }
+
+
 def brute_force_aes(
     ciphertext: bytes,
     key_bits: int,
     callback: Optional[CallbackType] = None,
     stop_flag: Optional[object] = None,
+    workers: int = 1,
+    chunk_size: int = 10000,
+    score_threshold: float = 0.9,
 ) -> Dict[str, object]:
     """
     Thử tất cả khóa từ 0 đến 2^key_bits - 1.
@@ -55,6 +114,55 @@ def brute_force_aes(
     keys_tested = 0
     update_interval = max(1, min(100_000, max_keys // 100))
 
+    if stop_flag is not None and workers > 1:
+        workers = 1
+
+    if workers > 1:
+        safe_workers = max(1, min(workers, cpu_count() or 1))
+        chunk = max(1, chunk_size)
+        ranges = [(i, min(i + chunk, max_keys), key_bits, ciphertext, score_threshold)
+                  for i in range(0, max_keys, chunk)]
+
+        with Pool(processes=safe_workers) as pool:
+            for result in pool.imap_unordered(_bruteforce_worker, ranges):
+                keys_tested += result.get('keys_tested', 0)
+                if callback is not None:
+                    elapsed = time.time() - start_time
+                    callback(keys_tested, max_keys, elapsed)
+
+                if result.get('found'):
+                    elapsed = time.time() - start_time
+                    kps = keys_tested / elapsed if elapsed > 0 else 0
+                    return {
+                        'found': True,
+                        'key_int': result['key_int'],
+                        'key_hex': result['key_hex'],
+                        'key_full_hex': result['key_full_hex'],
+                        'plaintext': result['plaintext'],
+                        'plaintext_score': result.get('plaintext_score', 0.0),
+                        'elapsed_seconds': elapsed,
+                        'keys_tested': keys_tested,
+                        'keys_per_second': kps,
+                        'total_keyspace': max_keys,
+                        'percent_searched': (keys_tested / max_keys) * 100,
+                    }
+
+        elapsed = time.time() - start_time
+        kps = keys_tested / elapsed if elapsed > 0 else 0
+        return {
+            'found': False,
+            'key_int': None,
+            'key_hex': None,
+            'key_full_hex': None,
+            'plaintext': None,
+            'plaintext_score': 0.0,
+            'elapsed_seconds': elapsed,
+            'keys_tested': keys_tested,
+            'keys_per_second': kps,
+            'total_keyspace': max_keys,
+            'percent_searched': 100.0,
+        }
+
     for i in range(max_keys):
         if stop_flag is not None and stop_flag.is_set():
             break
@@ -74,7 +182,8 @@ def brute_force_aes(
                 continue
 
             # Validate toàn bộ dữ liệu sau unpad
-            if is_valid_plaintext(unpadded):
+            score = score_plaintext(unpadded)
+            if score >= score_threshold:
                 try:
                     plaintext = unpadded.decode('utf-8')
                     elapsed = time.time() - start_time
@@ -86,6 +195,7 @@ def brute_force_aes(
                         'key_hex': key_part.hex().upper(),
                         'key_full_hex': key.hex().upper(),
                         'plaintext': plaintext,
+                        'plaintext_score': score,
                         'elapsed_seconds': elapsed,
                         'keys_tested': current,
                         'keys_per_second': kps,
@@ -111,6 +221,7 @@ def brute_force_aes(
         'key_hex': None,
         'key_full_hex': None,
         'plaintext': None,
+        'plaintext_score': 0.0,
         'elapsed_seconds': elapsed,
         'keys_tested': keys_tested,
         'keys_per_second': kps,

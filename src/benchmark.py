@@ -22,7 +22,12 @@ DEFAULT_KEY_BITS = [8, 12, 16]
 RESULTS_DIR = Path(__file__).resolve().parent.parent / "results"
 
 
-def benchmark_key_length(key_bits: int, test_text: str = "SECRET", verbose: bool = True) -> dict:
+def benchmark_key_length(
+    key_bits: int,
+    test_text: str = "SECRET",
+    verbose: bool = True,
+    workers: int = 1,
+) -> dict:
     """Đo thời gian brute-force cho một độ dài khóa cụ thể."""
     if verbose:
         print(f"\n[Benchmark {key_bits}-bit]")
@@ -35,7 +40,7 @@ def benchmark_key_length(key_bits: int, test_text: str = "SECRET", verbose: bool
         print(f"  Key value: {key_int} (0x{key_int:0{key_bits//4}X})")
         print("  Running brute-force...")
 
-    result = brute_force_aes(ciphertext, key_bits)
+    result = brute_force_aes(ciphertext, key_bits, workers=workers)
 
     benchmark_result = {
         'key_bits': key_bits,
@@ -62,7 +67,11 @@ def benchmark_key_length(key_bits: int, test_text: str = "SECRET", verbose: bool
     return benchmark_result
 
 
-def run_all_benchmarks(key_bits_list: List[int] = None, test_text: str = "SECRET") -> List[dict]:
+def run_all_benchmarks(
+    key_bits_list: List[int] = None,
+    test_text: str = "SECRET",
+    workers: int = 1,
+) -> List[dict]:
     """Chạy benchmark cho một hoặc nhiều độ dài khóa."""
     if key_bits_list is None:
         key_bits_list = DEFAULT_KEY_BITS
@@ -77,7 +86,7 @@ def run_all_benchmarks(key_bits_list: List[int] = None, test_text: str = "SECRET
     for bits in key_bits_list:
         if bits not in SUPPORTED_KEY_BITS:
             raise ValueError(f"Độ dài khóa không hợp lệ: {bits}. Hỗ trợ: {SUPPORTED_KEY_BITS}")
-        results.append(benchmark_key_length(bits, test_text))
+        results.append(benchmark_key_length(bits, test_text, workers=workers))
 
     print("\n" + "=" * 55)
     print("  SUMMARY TABLE")
@@ -183,6 +192,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help='Danh sách độ dài khóa để benchmark.',
     )
     parser.add_argument('--text', default='SECRET', help='Plaintext dùng cho benchmark.')
+    parser.add_argument('--workers', type=int, default=1, help='So luong process cho brute-force.')
     parser.add_argument('--output', default=str(RESULTS_DIR / 'benchmark_chart.png'), help='Đường dẫn lưu biểu đồ.')
     parser.add_argument('--json', default=str(RESULTS_DIR / 'benchmark_data.json'), help='Đường dẫn lưu dữ liệu JSON.')
     parser.add_argument('--no-plot', action='store_true', help='Không vẽ biểu đồ.')
@@ -192,7 +202,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 def main(argv: Sequence[str] | None = None) -> None:
     args = parse_args(argv)
-    results = run_all_benchmarks(key_bits_list=args.bits, test_text=args.text)
+    results = run_all_benchmarks(key_bits_list=args.bits, test_text=args.text, workers=args.workers)
 
     if not args.no_plot:
         plot_results(results, save_path=args.output)

@@ -73,13 +73,13 @@ python main.py
 ### Chế độ dòng lệnh (CLI)
 ```bash
 cd src
-python main.py --cli --text SECRET --bits 16
+python main.py --cli --text SECRET --bits 16 --workers 4
 ```
 
 ### Benchmark riêng lẻ
 ```bash
 cd src
-python benchmark.py --bits 8 12 16 --text SECRET
+python benchmark.py --bits 8 12 16 --text SECRET --workers 4
 ```
 
 ### Chạy tests
@@ -126,7 +126,7 @@ Key AES:    AB CD 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 for i in range(2 ** key_bits):           # Thử tất cả khóa
     key = i.to_bytes(...).ljust(16, b'\x00')
     decrypted = AES.decrypt(ciphertext, key)
-    if is_printable(decrypted):           # Kiểm tra ASCII
+    if score_plaintext(decrypted) >= 0.9: # Kiểm tra ASCII + ngưỡng điểm
         return key                        # TÌM THẤY!
 ```
 

@@ -53,6 +53,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default=16,
         help="Độ dài khóa để mã hóa và brute-force.",
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="So luong process dung cho brute-force (>=1).",
+    )
     return parser.parse_args(argv)
 
 
@@ -72,7 +78,7 @@ def run_gui() -> None:
     root.mainloop()
 
 
-def run_cli(plaintext: str, key_bits: int) -> None:
+def run_cli(plaintext: str, key_bits: int, workers: int) -> None:
     """Chạy demo CLI với plaintext và key_bits đã khai báo."""
     from aes_engine import encrypt_aes, bytes_to_hex
     from brute_force import brute_force_aes, estimate_time
@@ -102,7 +108,7 @@ def run_cli(plaintext: str, key_bits: int) -> None:
                 f"{elapsed:.1f}s | {kps:,.0f} keys/s"
             )
 
-    result = brute_force_aes(ciphertext, key_bits, callback=progress_cb)
+    result = brute_force_aes(ciphertext, key_bits, callback=progress_cb, workers=workers)
 
     print("\n" + "=" * 55)
     if result['found']:
@@ -135,7 +141,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         except ImportError:
             print("⚠️  Tkinter không khả dụng. Chuyển sang CLI...")
 
-    run_cli(args.text, args.bits)
+    run_cli(args.text, args.bits, args.workers)
 
 
 if __name__ == "__main__":
