@@ -10,6 +10,7 @@ from aes_engine import PureAES, unpad
 
 SUPPORTED_KEY_BITS = [8, 12, 16, 20, 24, 32]
 CallbackType = Callable[[int, int, float], None]
+DetailCallbackType = Callable[[Dict[str, object]], None]
 
 
 def validate_key_bits(bits: int) -> None:
@@ -89,10 +90,12 @@ def brute_force_aes(
     ciphertext: bytes,
     key_bits: int,
     callback: Optional[CallbackType] = None,
+    detail_callback: Optional[DetailCallbackType] = None,
     stop_flag: Optional[object] = None,
     workers: int = 1,
     chunk_size: int = 10000,
     score_threshold: float = 0.9,
+    detail_interval: Optional[int] = None,
 ) -> Dict[str, object]:
     """
     Thử tất cả khóa từ 0 đến 2^key_bits - 1.
@@ -113,11 +116,34 @@ def brute_force_aes(
     start_time = time.time()
     keys_tested = 0
     update_interval = max(1, min(100_000, max_keys // 100))
+    if detail_interval is None:
+        detail_interval = max(1, min(10_000, max_keys // 200))
+
+    def emit_detail(event: str, **payload: object) -> None:
+        if detail_callback is None:
+            return
+        elapsed = time.time() - start_time
+        current = int(payload.get('current', keys_tested) or 0)
+        detail_callback({
+            'event': event,
+            'current': current,
+            'total': max_keys,
+            'elapsed': elapsed,
+            'percent': (current / max_keys) * 100 if max_keys else 0.0,
+            **payload,
+        })
 
     if stop_flag is not None and workers > 1:
         workers = 1
 
     if workers > 1:
+        emit_detail(
+            'start',
+            workers=workers,
+            key_bits=key_bits,
+            keyspace=max_keys,
+            mode='multiprocessing',
+        )
         safe_workers = max(1, min(workers, cpu_count() or 1))
         chunk = max(1, chunk_size)
         ranges = [(i, min(i + chunk, max_keys), key_bits, ciphertext, score_threshold)
@@ -129,10 +155,26 @@ def brute_force_aes(
                 if callback is not None:
                     elapsed = time.time() - start_time
                     callback(keys_tested, max_keys, elapsed)
+                emit_detail(
+                    'chunk_done',
+                    current=keys_tested,
+                    keys_tested=keys_tested,
+                    workers=safe_workers,
+                )
 
                 if result.get('found'):
                     elapsed = time.time() - start_time
                     kps = keys_tested / elapsed if elapsed > 0 else 0
+                    emit_detail(
+                        'found',
+                        current=keys_tested,
+                        key_int=result['key_int'],
+                        key_hex=result['key_hex'],
+                        key_full_hex=result['key_full_hex'],
+                        plaintext=result['plaintext'],
+                        plaintext_score=result.get('plaintext_score', 0.0),
+                        keys_per_second=kps,
+                    )
                     return {
                         'found': True,
                         'key_int': result['key_int'],
@@ -149,6 +191,7 @@ def brute_force_aes(
 
         elapsed = time.time() - start_time
         kps = keys_tested / elapsed if elapsed > 0 else 0
+        emit_detail('exhausted', current=keys_tested, keys_tested=keys_tested)
         return {
             'found': False,
             'key_int': None,
@@ -163,13 +206,35 @@ def brute_force_aes(
             'percent_searched': 100.0,
         }
 
+    emit_detail(
+        'start',
+        current=0,
+        workers=1,
+        key_bits=key_bits,
+        keyspace=max_keys,
+        key_bytes_len=key_bytes_len,
+        score_threshold=score_threshold,
+        mode='sequential',
+    )
+
     for i in range(max_keys):
         if stop_flag is not None and stop_flag.is_set():
+            emit_detail('stopped', current=keys_tested, keys_tested=keys_tested)
             break
 
         current = i + 1
         key_part = i.to_bytes(key_bytes_len, byteorder='big')
         key = key_part.ljust(16, b'\x00')
+        key_hex = key_part.hex().upper()
+
+        if detail_callback is not None and (i == 0 or current % detail_interval == 0):
+            emit_detail(
+                'trying',
+                current=current,
+                key_int=i,
+                key_hex=key_hex,
+                key_full_hex=key.hex().upper(),
+            )
 
         try:
             cipher = PureAES(key)
@@ -183,16 +248,35 @@ def brute_force_aes(
 
             # Validate toàn bộ dữ liệu sau unpad
             score = score_plaintext(unpadded)
+            preview = unpadded[:80].decode('utf-8', errors='replace')
+            emit_detail(
+                'padding_valid',
+                current=current,
+                key_int=i,
+                key_hex=key_hex,
+                plaintext_preview=preview,
+                plaintext_score=score,
+            )
             if score >= score_threshold:
                 try:
                     plaintext = unpadded.decode('utf-8')
                     elapsed = time.time() - start_time
                     kps = current / elapsed if elapsed > 0 else 0
+                    emit_detail(
+                        'found',
+                        current=current,
+                        key_int=i,
+                        key_hex=key_hex,
+                        key_full_hex=key.hex().upper(),
+                        plaintext=plaintext,
+                        plaintext_score=score,
+                        keys_per_second=kps,
+                    )
 
                     return {
                         'found': True,
                         'key_int': i,
-                        'key_hex': key_part.hex().upper(),
+                        'key_hex': key_hex,
                         'key_full_hex': key.hex().upper(),
                         'plaintext': plaintext,
                         'plaintext_score': score,
@@ -214,6 +298,7 @@ def brute_force_aes(
 
     elapsed = time.time() - start_time
     kps = keys_tested / elapsed if elapsed > 0 else 0
+    emit_detail('exhausted', current=keys_tested, keys_tested=keys_tested)
 
     return {
         'found': False,

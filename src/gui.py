@@ -25,6 +25,7 @@ class AESBruteForceApp:
         self._ciphertext = None
         self._encrypt_key_int = None
         self._encrypt_key_bits = None
+        self.bf_verbose_log = tk.BooleanVar(value=True)
 
         self._build_ui()
 
@@ -211,6 +212,12 @@ class AESBruteForceApp:
         # Actions
         act_frame = tk.Frame(frame, bg="#24273A")
         act_frame.pack(fill=tk.X, padx=20, pady=10)
+        tk.Checkbutton(
+            act_frame, text="Log chi tiet", variable=self.bf_verbose_log,
+            bg="#24273A", fg="#CAD3F5", selectcolor="#1E2030",
+            activebackground="#24273A", activeforeground="#8AADF4",
+            font=("Segoe UI", 10, "bold")
+        ).pack(side=tk.LEFT, padx=(0, 12))
         self.bf_btn_start = self._btn(act_frame, "⚡  Bắt đầu tấn công", self._do_brute_force, "#ED8796")
         self.bf_btn_start.pack(side=tk.LEFT, padx=(0, 12))
         self.bf_btn_stop = self._btn(act_frame, "⏹  Dừng", self._do_stop, "#F5A97F")
@@ -443,11 +450,10 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
         self.bf_stat_kps.configure(text="Keys/s: —")
         self.bf_stat_time.configure(text="Elapsed: 0.0s")
 
-        self._log(f"⚡ Bắt đầu brute-force {bits}-bit AES...")
-        self._log(f"   Keyspace: 2^{bits} = {2**bits:,} keys")
+        self._log_bf_start_report(bits, ciphertext)
         if self._encrypt_key_int is not None:
-            self._log(f"   Key thực sự cần tìm: {self._encrypt_key_int}")
-        self._log("─" * 52)
+            self._log(f"   Target key demo : {self._encrypt_key_int}")
+        self._log("=" * 64)
 
         def run():
             def cb(current, total, elapsed):
@@ -455,7 +461,18 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
                 kps = current / elapsed if elapsed > 0 else 0
                 self.root.after(0, self._update_bf_stats, current, total, pct, kps, elapsed)
 
-            result = brute_force_aes(ciphertext, bits, callback=cb, stop_flag=self._stop_flag)
+            def detail_cb(event):
+                if self.bf_verbose_log.get():
+                    self.root.after(0, self._log_bf_detail, event)
+
+            result = brute_force_aes(
+                ciphertext,
+                bits,
+                callback=cb,
+                detail_callback=detail_cb,
+                stop_flag=self._stop_flag,
+                detail_interval=self._detail_log_interval(bits),
+            )
             self.root.after(0, self._on_bf_done, result, bits)
 
         self._bf_thread = threading.Thread(target=run, daemon=True)
@@ -491,6 +508,119 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
     # UI UPDATE (gọi từ main thread qua after())
     # ─────────────────────────────────────────────
 
+    def _detail_log_interval(self, bits: int) -> int:
+        intervals = {
+            8: 16,
+            12: 256,
+            16: 4096,
+            20: 65536,
+            24: 1048576,
+            32: 16777216,
+        }
+        return intervals.get(bits, 10000)
+
+    def _log_bf_start_report(self, bits: int, ciphertext: bytes) -> None:
+        total = 1 << bits
+        interval = self._detail_log_interval(bits)
+        avg_keys = total // 2
+        self._log("=" * 64)
+        self._log("BAT DAU QUA TRINH BRUTE-FORCE AES")
+        self._log("=" * 64)
+        self._log("")
+        self._log("[STEP 1] DU LIEU DAU VAO")
+        self._log(f"   Ciphertext (hex)    : {ciphertext.hex().upper()}")
+        self._log(f"   Ciphertext (bytes)  : {len(ciphertext)} bytes")
+        self._log(f"   Do dai khoa can tim : {bits} bits")
+        self._log("")
+        self._log("[STEP 2] LAP KE HOACH TAN CONG")
+        self._log(f"   Keyspace            : 2^{bits} = {total:,} keys")
+        self._log(f"   Avg keys test       : {avg_keys:,} keys")
+        self._log(f"   Log moi             : {interval:,} keys")
+        self._log("   Kiem tra hop le     : PKCS7 OK + ASCII printable score")
+        self._log("")
+        self._log("[STEP 3] BAT DAU QUET KEYSPACE")
+
+    def _log_bf_detail(self, event):
+        event_type = event.get('event')
+        current = int(event.get('current', 0) or 0)
+        total = int(event.get('total', 0) or 0)
+        percent = float(event.get('percent', 0.0) or 0.0)
+
+        if event_type == 'start':
+            self._log(f"   Mode                : {event.get('mode')}")
+            self._log(f"   Workers             : {event.get('workers')}")
+            self._log(f"   Score threshold     : {event.get('score_threshold', 'n/a')}")
+        elif event_type == 'trying':
+            self._log(
+                f"   Try {current:>8,}/{total:,} ({percent:>6.2f}%)  "
+                f"key={event.get('key_int')}  hex=0x{event.get('key_hex')}"
+            )
+        elif event_type == 'padding_valid':
+            score = float(event.get('plaintext_score', 0.0) or 0.0)
+            if score < 0.85:
+                return
+            self._log(
+                f"   Candidate OK        : key={event.get('key_int')} | "
+                f"score={score:.2f} | text={event.get('plaintext_preview')!r}"
+            )
+        elif event_type == 'chunk_done':
+            self._log(
+                f"[CHUNK] tested={event.get('keys_tested'):,}/{total:,} "
+                f"({percent:.2f}%) | workers={event.get('workers')}"
+            )
+        elif event_type == 'found':
+            self._log("   Candidate accepted  : PKCS7 OK + ASCII printable OK")
+        elif event_type == 'stopped':
+            self._log(f"[DETAIL] Stopped after {current:,}/{total:,} keys ({percent:.2f}%).")
+        elif event_type == 'exhausted':
+            self._log(f"[DETAIL] Exhausted keyspace: {current:,}/{total:,} keys.")
+
+    def _log_bf_success_report(self, result, bits: int) -> None:
+        key_int = int(result['key_int'])
+        key_bytes_len = (bits + 7) // 8
+        key_bytes = key_int.to_bytes(key_bytes_len, byteorder='big')
+        key_binary = format(key_int, f"0{bits}b")
+        elapsed = float(result['elapsed_seconds'])
+        keys_tested = int(result['keys_tested'])
+        total = int(result['total_keyspace'])
+        kps = float(result['keys_per_second'])
+        avg_theory = (total / 2) / kps if kps > 0 else 0.0
+        ratio = (elapsed / avg_theory * 100) if avg_theory > 0 else 0.0
+        verdict = "Tim som hon trung binh" if elapsed <= avg_theory else "Cham hon trung binh"
+        ciphertext = self._get_ciphertext_from_input()
+        ciphertext_hex = ciphertext.hex().upper() if ciphertext is not None else ""
+
+        self._log("TIM THAY KHOA!")
+        self._log("=" * 64)
+        self._log("")
+        self._log("[RESULT] THONG TIN KHOA")
+        self._log(f"   Key (decimal)       : {key_int}")
+        self._log(f"   Key (hex)           : 0x{result['key_hex']}")
+        self._log(f"   Key (binary)        : {key_binary}")
+        self._log(f"   Key (bytes)         : {key_bytes.hex().upper()}")
+        self._log(f"   Key AES-128         : {result['key_full_hex']}")
+        self._log("")
+        self._log("[RESULT] GIAI MA THANH CONG")
+        self._log(f"   Ciphertext          : {ciphertext_hex}")
+        self._log(f"   Plaintext           : {result['plaintext']}")
+        self._log(f"   Validation          : PKCS7 OK + ASCII printable OK")
+        self._log(f"   Plaintext score     : {result.get('plaintext_score', 0.0):.2f}")
+        self._log("")
+        self._log("[RESULT] THONG KE HIEU NANG")
+        self._log(f"   Thoi gian           : {elapsed:.6f} giay")
+        self._log(f"   Keys tested         : {keys_tested:,}")
+        self._log(f"   Total keyspace      : {total:,}")
+        self._log(f"   % da search         : {result['percent_searched']:.2f}%")
+        self._log(f"   Toc do TB           : {kps:,.0f} keys/giay")
+        self._log("")
+        self._log("[ANALYSIS] SO SANH LY THUYET")
+        self._log(f"   Avg ly thuyet       : {avg_theory:.6f} giay")
+        self._log(f"   Thoi gian thuc      : {elapsed:.6f} giay")
+        self._log(f"   Ti le               : {ratio:.1f}%")
+        self._log(f"   Nhan xet            : {verdict}")
+        self._log("")
+        self._log("=" * 64)
+
     def _update_bf_stats(self, current, total, pct, kps, elapsed):
         self.bf_progress['value'] = pct
         self.bf_pct_label.configure(text=f"{pct:.1f}%")
@@ -506,18 +636,23 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
             result['keys_per_second'], result['elapsed_seconds']
         )
 
-        self._log("─" * 52)
+        self._log("")
+        self._log("=" * 64)
         if result['found']:
-            self._log(f"✅ TÌM THẤY KHÓA!")
-            self._log(f"   Key (int) : {result['key_int']}")
-            self._log(f"   Key (hex) : 0x{result['key_hex']}")
-            self._log(f"   Plaintext : {result['plaintext']}")
-            self._log(f"   Thời gian : {result['elapsed_seconds']:.3f}s")
-            self._log(f"   Keys test : {result['keys_tested']:,} / {result['total_keyspace']:,}")
-            self._log(f"   Keys/giây : {result['keys_per_second']:,.0f}")
+            self._log_bf_success_report(result, bits)
             self.status_var.set(f"✅ Tìm thấy! Key={result['key_int']}, plaintext='{result['plaintext']}'")
         else:
-            self._log("❌ Không tìm thấy (đã dừng hoặc hết keyspace)")
+            self._log("KHONG TIM THAY KHOA")
+            self._log("=" * 64)
+            self._log("")
+            self._log("[RESULT] THONG KE")
+            self._log(f"   Keys tested         : {result['keys_tested']:,}")
+            self._log(f"   Total keyspace      : {result['total_keyspace']:,}")
+            self._log(f"   % da search         : {result['percent_searched']:.2f}%")
+            self._log(f"   Thoi gian           : {result['elapsed_seconds']:.6f} giay")
+            self._log(f"   Toc do TB           : {result['keys_per_second']:,.0f} keys/giay")
+            self._log("")
+            self._log("=" * 64)
             self.status_var.set("❌ Brute-force kết thúc không thành công")
 
         self._set_bf_button_state(running=False)
