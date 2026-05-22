@@ -17,6 +17,20 @@ sys.path.insert(0, str(ROOT_DIR))
 SUPPORTED_KEY_BITS = [8, 12, 16, 20, 24, 32]
 
 
+def configure_console() -> None:
+    """Chuẩn hóa output console để giảm lỗi Unicode trên Windows."""
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+    if hasattr(sys.stderr, "reconfigure"):
+        try:
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
+
 def check_dependencies() -> None:
     """Kiểm tra thư viện trước khi chạy."""
     missing = []
@@ -34,7 +48,7 @@ def check_dependencies() -> None:
         print("\nCài đặt: pip install matplotlib")
         sys.exit(1)
 
-    print("✅ Tất cả thư viện OK")
+    print("[OK] Tat ca thu vien OK")
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -45,6 +59,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--cli", action="store_true", help="Chạy chế độ dòng lệnh CLI.")
     parser.add_argument("--gui", action="store_true", help="Buộc chạy giao diện Tkinter.")
     parser.add_argument("--no-gui", action="store_true", help="Không chạy GUI, chỉ CLI.")
+    parser.add_argument("--fast", action="store_true", help="Sử dụng PyCryptodome (Fast Mode).")
     parser.add_argument("--text", default="SECRET", help="Plaintext cho CLI mode.")
     parser.add_argument(
         "--bits",
@@ -78,7 +93,7 @@ def run_gui() -> None:
     root.mainloop()
 
 
-def run_cli(plaintext: str, key_bits: int, workers: int) -> None:
+def run_cli(plaintext: str, key_bits: int, workers: int, fast_mode: bool = False) -> None:
     """Chạy demo CLI với plaintext và key_bits đã khai báo."""
     from aes_engine import encrypt_aes, bytes_to_hex
     from brute_force import brute_force_aes, estimate_time
@@ -108,11 +123,11 @@ def run_cli(plaintext: str, key_bits: int, workers: int) -> None:
                 f"{elapsed:.1f}s | {kps:,.0f} keys/s"
             )
 
-    result = brute_force_aes(ciphertext, key_bits, callback=progress_cb, workers=workers)
+    result = brute_force_aes(ciphertext, key_bits, callback=progress_cb, workers=workers, fast_mode=fast_mode)
 
     print("\n" + "=" * 55)
     if result['found']:
-        print("✅ Key tìm thấy!")
+        print("[OK] Key tim thay!")
         print(f"   Key (int)   : {result['key_int']}")
         print(f"   Key (hex)   : 0x{result['key_hex']}")
         print(f"   Plaintext   : {result['plaintext']}")
@@ -120,7 +135,7 @@ def run_cli(plaintext: str, key_bits: int, workers: int) -> None:
         print(f"   Keys tested : {result['keys_tested']:,}")
         print(f"   Keys/s      : {result['keys_per_second']:,.0f}")
     else:
-        print("❌ Không tìm thấy key.")
+        print("[FAIL] Khong tim thay key.")
 
     print("\n[Ước tính thời gian với tốc độ thực tế]")
     measured_kps = result['keys_per_second'] if result['keys_per_second'] > 0 else 50_000
@@ -130,6 +145,7 @@ def run_cli(plaintext: str, key_bits: int, workers: int) -> None:
 
 
 def main(argv: Sequence[str] | None = None) -> None:
+    configure_console()
     args = parse_args(argv)
     check_dependencies()
 
@@ -139,9 +155,9 @@ def main(argv: Sequence[str] | None = None) -> None:
             run_gui()
             return
         except ImportError:
-            print("⚠️  Tkinter không khả dụng. Chuyển sang CLI...")
+            print("[WARN] Tkinter khong kha dung. Chuyen sang CLI...")
 
-    run_cli(args.text, args.bits, args.workers)
+    run_cli(args.text, args.bits, args.workers, args.fast)
 
 
 if __name__ == "__main__":

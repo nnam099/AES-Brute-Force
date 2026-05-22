@@ -7,7 +7,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 import threading
 import time
-
+import multiprocessing
 
 class AESBruteForceApp:
     """Ứng dụng GUI chính minh họa AES Brute-Force."""
@@ -215,6 +215,14 @@ class AESBruteForceApp:
         tk.Checkbutton(
             act_frame, text="Log chi tiet", variable=self.bf_verbose_log,
             bg="#24273A", fg="#CAD3F5", selectcolor="#1E2030",
+            activebackground="#24273A", activeforeground="#8AADF4",
+            font=("Segoe UI", 10, "bold")
+        ).pack(side=tk.LEFT, padx=(0, 12))
+        
+        self.bf_fast_mode = tk.BooleanVar(value=False)
+        tk.Checkbutton(
+            act_frame, text="🚀 Fast Mode", variable=self.bf_fast_mode,
+            bg="#24273A", fg="#A6DA95", selectcolor="#1E2030",
             activebackground="#24273A", activeforeground="#8AADF4",
             font=("Segoe UI", 10, "bold")
         ).pack(side=tk.LEFT, padx=(0, 12))
@@ -471,7 +479,9 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
                 callback=cb,
                 detail_callback=detail_cb,
                 stop_flag=self._stop_flag,
+                workers=multiprocessing.cpu_count(),
                 detail_interval=self._detail_log_interval(bits),
+                fast_mode=self.bf_fast_mode.get(),
             )
             self.root.after(0, self._on_bf_done, result, bits)
 

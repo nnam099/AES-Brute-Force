@@ -7,7 +7,7 @@
 
 ## 📋 Giới thiệu
 
-Ứng dụng này minh họa **tấn công Brute-Force** (vét cạn) lên thuật toán mã hóa **AES** khi sử dụng khóa có độ dài ngắn (8 – 32 bits), thay vì khóa chuẩn 128-bit.
+Ứng dụng này minh họa **tấn công Brute-Force** (vét cạn) lên thuật toán mã hóa **AES-128** khi chỉ giữ lại một phần ngắn của khóa làm bí mật. Cụ thể, project dùng AES-128 với khóa demo có entropy 8/12/16/20/24/32-bit, còn các byte còn lại được cố định bằng `0x00`.
 
 ### Mục tiêu học thuật
 - Hiểu khái niệm **không gian khóa** (`2^n`)  
@@ -107,18 +107,18 @@ python tests/test_aes.py
 5. Kết quả: key tìm được và plaintext giải mã
 
 ### Tab 3: Lý thuyết
-Xem bảng ước tính thời gian brute-force cho các độ dài khóa khác nhau.
+Xem bảng ước tính thời gian brute-force cho các mức entropy khóa khác nhau. Đây là mô phỏng học thuật trên AES-128 với phần khóa bí mật được rút gọn.
 
 ---
 
 ## 📊 Nguyên lý hoạt động
 
-### AES với khóa ngắn
+### AES-128 với khóa demo rút gọn
 ```
-Key 16-bit: 0xABCD
-             ↓
-Key AES:    AB CD 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-            └─ 2 bytes ─┘└────────────── 14 bytes zeros ──────────────┘
+Key demo 16-bit: 0xABCD
+                 ↓
+AES-128 key:    AB CD 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+                └─ 2 bytes secret ─┘└────────────── 14 bytes 0x00 ──────────────┘
 ```
 
 ### Brute-Force thuật toán
@@ -131,14 +131,15 @@ for i in range(2 ** key_bits):           # Thử tất cả khóa
 ```
 
 ### Không gian khóa
-| Key bits | Keyspace       | Thời gian trung bình (~50K keys/s) |
-|----------|----------------|------------------------------------|
-| 8-bit    | 256            | < 0.01 giây                       |
-| 12-bit   | 4,096          | < 0.1 giây                        |
-| 16-bit   | 65,536         | ~0.6 giây                         |
-| 20-bit   | 1,048,576      | ~10 giây                          |
-| 24-bit   | 16,777,216     | ~3 phút                            |
-| 32-bit   | 4,294,967,296  | ~12 giờ                            |
+| Key entropy | Keyspace       | Thời gian trung bình (~50K keys/s) |
+|------------|----------------|------------------------------------|
+| 8-bit      | 256            | < 0.01 giây                       |
+| 12-bit     | 4,096          | < 0.1 giây                        |
+| 16-bit     | 65,536         | ~0.6 giây                         |
+| 20-bit     | 1,048,576      | ~10 giây                          |
+| 24-bit     | 16,777,216     | ~3 phút                           |
+| 32-bit     | 4,294,967,296  | ~12 giờ                           |
+| 64-bit     | 1.84 × 10¹⁹    | ~5.8 triệu năm                    |
 | **128-bit** | **3.4 × 10³⁸** | **KHÔNG THỂ**                   |
 
 > ⚠️ **ECB Mode Warning**: ECB không dùng IV, plaintext giống nhau → ciphertext giống nhau. Dùng CBC/GCM trong thực tế!

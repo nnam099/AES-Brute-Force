@@ -200,6 +200,14 @@ class TestBruteForce(unittest.TestCase):
         self.assertGreater(est['avg_time_seconds'], 0)
         print(f"TC11 PASS: estimate_time(16bit) = avg {est['avg_time_formatted']}")
 
+    def test_tc11b_estimate_time_128bit(self):
+        """TC11b: estimate_time hỗ trợ 128-bit để phục vụ phần lý thuyết."""
+        est = estimate_time(128, keys_per_second=50_000)
+        self.assertEqual(est['key_bits'], 128)
+        self.assertGreater(est['keyspace'], 0)
+        self.assertGreater(est['avg_time_seconds'], 0)
+        print(f"TC11b PASS: estimate_time(128bit) = avg {est['avg_time_formatted']}")
+
     def test_tc12_keyspace_calculation(self):
         """TC12: Keyspace = 2^n."""
         for bits in [8, 12, 16, 20]:

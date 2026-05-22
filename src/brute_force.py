@@ -42,11 +42,11 @@ def score_plaintext(data: bytes) -> float:
     return printable / len(data)
 
 
-def _bruteforce_worker(args: Tuple[int, int, int, bytes, float]) -> Dict[str, object]:
+def _bruteforce_worker(args: Tuple[int, int, int, bytes, float, bool]) -> Dict[str, object]:
     """
     Worker quet mot doan keyspace [start, end).
     """
-    start, end, key_bits, ciphertext, score_threshold = args
+    start, end, key_bits, ciphertext, score_threshold, fast_mode = args
     key_bytes_len = (key_bits + 7) // 8
 
     for i in range(start, end):
@@ -54,8 +54,13 @@ def _bruteforce_worker(args: Tuple[int, int, int, bytes, float]) -> Dict[str, ob
         key = key_part.ljust(16, b'\x00')
 
         try:
-            cipher = PureAES(key)
-            decrypted_raw = cipher.decrypt(ciphertext)
+            if fast_mode:
+                from Crypto.Cipher import AES
+                cipher = AES.new(key, AES.MODE_ECB)
+                decrypted_raw = cipher.decrypt(ciphertext)
+            else:
+                cipher = PureAES(key)
+                decrypted_raw = cipher.decrypt(ciphertext)
 
             try:
                 unpadded = unpad(decrypted_raw, 16)
@@ -96,6 +101,7 @@ def brute_force_aes(
     chunk_size: int = 10000,
     score_threshold: float = 0.9,
     detail_interval: Optional[int] = None,
+    fast_mode: bool = False,
 ) -> Dict[str, object]:
     """
     Thử tất cả khóa từ 0 đến 2^key_bits - 1.
@@ -105,6 +111,7 @@ def brute_force_aes(
         key_bits: Độ dài khóa cần tìm
         callback: Hàm callback(current, total, elapsed)
         stop_flag: Object có is_set() để dừng sớm
+        fast_mode: Sử dụng thư viện PyCryptodome để tăng tốc
 
     Returns:
         dict: Kết quả brute-force
@@ -133,9 +140,6 @@ def brute_force_aes(
             **payload,
         })
 
-    if stop_flag is not None and workers > 1:
-        workers = 1
-
     if workers > 1:
         emit_detail(
             'start',
@@ -143,14 +147,19 @@ def brute_force_aes(
             key_bits=key_bits,
             keyspace=max_keys,
             mode='multiprocessing',
+            fast_mode=fast_mode,
         )
         safe_workers = max(1, min(workers, cpu_count() or 1))
         chunk = max(1, chunk_size)
-        ranges = [(i, min(i + chunk, max_keys), key_bits, ciphertext, score_threshold)
+        ranges = [(i, min(i + chunk, max_keys), key_bits, ciphertext, score_threshold, fast_mode)
                   for i in range(0, max_keys, chunk)]
 
         with Pool(processes=safe_workers) as pool:
             for result in pool.imap_unordered(_bruteforce_worker, ranges):
+                if stop_flag is not None and stop_flag.is_set():
+                    pool.terminate()
+                    break
+
                 keys_tested += result.get('keys_tested', 0)
                 if callback is not None:
                     elapsed = time.time() - start_time
@@ -163,6 +172,7 @@ def brute_force_aes(
                 )
 
                 if result.get('found'):
+                    pool.terminate()
                     elapsed = time.time() - start_time
                     kps = keys_tested / elapsed if elapsed > 0 else 0
                     emit_detail(
@@ -215,6 +225,7 @@ def brute_force_aes(
         key_bytes_len=key_bytes_len,
         score_threshold=score_threshold,
         mode='sequential',
+        fast_mode=fast_mode,
     )
 
     for i in range(max_keys):
@@ -237,8 +248,13 @@ def brute_force_aes(
             )
 
         try:
-            cipher = PureAES(key)
-            decrypted_raw = cipher.decrypt(ciphertext)
+            if fast_mode:
+                from Crypto.Cipher import AES
+                cipher = AES.new(key, AES.MODE_ECB)
+                decrypted_raw = cipher.decrypt(ciphertext)
+            else:
+                cipher = PureAES(key)
+                decrypted_raw = cipher.decrypt(ciphertext)
 
             # Unpad trước, nếu padding không hợp lệ → bỏ qua ngay
             try:
@@ -326,7 +342,8 @@ def estimate_time(key_bits: int, keys_per_second: float = None) -> Dict[str, obj
     Returns:
         dict: Thông tin ước tính
     """
-    validate_key_bits(key_bits)
+    if key_bits <= 0:
+        raise ValueError("key_bits phải lớn hơn 0")
     keyspace = 1 << key_bits
 
     if keys_per_second is None or keys_per_second <= 0:
