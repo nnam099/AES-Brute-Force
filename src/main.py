@@ -14,7 +14,7 @@ from typing import Sequence
 ROOT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT_DIR))
 
-SUPPORTED_KEY_BITS = [8, 12, 16, 20, 24, 32]
+from aes_engine import SUPPORTED_KEY_BITS  # noqa: E402
 
 
 def configure_console() -> None:

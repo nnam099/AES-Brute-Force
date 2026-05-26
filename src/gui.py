@@ -26,6 +26,7 @@ class AESBruteForceApp:
         self._encrypt_key_int = None
         self._encrypt_key_bits = None
         self.bf_verbose_log = tk.BooleanVar(value=True)
+        self._last_log_time = 0.0  # throttle cho detail_callback
 
         self._build_ui()
 
@@ -470,7 +471,13 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
                 self.root.after(0, self._update_bf_stats, current, total, pct, kps, elapsed)
 
             def detail_cb(event):
-                if self.bf_verbose_log.get():
+                if not self.bf_verbose_log.get():
+                    return
+                # Luôn log các event quan trọng dù throttle
+                always_log = event.get('event') in ('found', 'exhausted', 'stopped', 'start')
+                now = time.time()
+                if always_log or (now - self._last_log_time >= 0.1):
+                    self._last_log_time = now
                     self.root.after(0, self._log_bf_detail, event)
 
             result = brute_force_aes(

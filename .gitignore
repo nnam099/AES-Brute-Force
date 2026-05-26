@@ -38,3 +38,6 @@ docs/generated/
 .pytest_cache/
 htmlcov/
 .coverage
+
+# Temporary scripts (doc processing, etc.)
+_tmp_*.py

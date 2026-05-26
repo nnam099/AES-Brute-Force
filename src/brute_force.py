@@ -6,9 +6,16 @@ Tấn công vét cạn tuần tự (sequential brute-force) lên AES khóa ngắ
 import time
 from multiprocessing import Pool, cpu_count
 from typing import Callable, Dict, Optional, Tuple
-from aes_engine import PureAES, unpad
+from aes_engine import PureAES, unpad, SUPPORTED_KEY_BITS
 
-SUPPORTED_KEY_BITS = [8, 12, 16, 20, 24, 32]
+# PyCryptodome (tuỳ chọn) — dùng cho Fast Mode
+try:
+    from Crypto.Cipher import AES as _CryptoAES
+    _PYCRYPTODOME_AVAILABLE = True
+except ImportError:
+    _CryptoAES = None  # type: ignore
+    _PYCRYPTODOME_AVAILABLE = False
+
 CallbackType = Callable[[int, int, float], None]
 DetailCallbackType = Callable[[Dict[str, object]], None]
 
@@ -55,8 +62,9 @@ def _bruteforce_worker(args: Tuple[int, int, int, bytes, float, bool]) -> Dict[s
 
         try:
             if fast_mode:
-                from Crypto.Cipher import AES
-                cipher = AES.new(key, AES.MODE_ECB)
+                if not _PYCRYPTODOME_AVAILABLE:
+                    raise ImportError("pycryptodome chưa cài: pip install pycryptodome")
+                cipher = _CryptoAES.new(key, _CryptoAES.MODE_ECB)  # type: ignore[union-attr]
                 decrypted_raw = cipher.decrypt(ciphertext)
             else:
                 cipher = PureAES(key)
@@ -249,8 +257,9 @@ def brute_force_aes(
 
         try:
             if fast_mode:
-                from Crypto.Cipher import AES
-                cipher = AES.new(key, AES.MODE_ECB)
+                if not _PYCRYPTODOME_AVAILABLE:
+                    raise ImportError("pycryptodome chưa cài: pip install pycryptodome")
+                cipher = _CryptoAES.new(key, _CryptoAES.MODE_ECB)  # type: ignore[union-attr]
                 decrypted_raw = cipher.decrypt(ciphertext)
             else:
                 cipher = PureAES(key)
