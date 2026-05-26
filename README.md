@@ -1,17 +1,17 @@
 # 🔐 AES Brute-Force Demo
 
-> **Đồ án môn An toàn thông tin** — Minh họa phương pháp thám mã khóa bí mật nhỏ  
-> Tập trung: AES với khóa ngắn & tấn công Brute-Force tuần tự
+> **Đồ án môn Mật Mã Học** — Minh họa phương pháp tấn công Brute-Force lên AES-128 với khóa entropy thấp  
+> Triển khai AES **từ Scratch** bằng Python thuần — không dùng thư viện mã hóa
 
 ---
 
 ## 📋 Giới thiệu
 
-Ứng dụng này minh họa **tấn công Brute-Force** (vét cạn) lên thuật toán mã hóa **AES-128** khi chỉ giữ lại một phần ngắn của khóa làm bí mật. Cụ thể, project dùng AES-128 với khóa demo có entropy 8/12/16/20/24/32-bit, còn các byte còn lại được cố định bằng `0x00`.
+Ứng dụng minh họa **tấn công Brute-Force (vét cạn)** lên thuật toán **AES-128** khi chỉ một phần nhỏ của khóa là bí mật. Cụ thể, project dùng AES-128 với khóa có entropy 8 / 12 / 16 / 20 / 24 / 32 bit — các byte còn lại được cố định bằng `0x00`.
 
 ### Mục tiêu học thuật
-- Hiểu khái niệm **không gian khóa** (`2^n`)  
-- Quan sát trực tiếp tốc độ brute-force tăng theo hàm mũ  
+- Hiểu khái niệm **không gian khóa** (`2^n`) và sự tăng trưởng theo hàm mũ
+- Quan sát trực tiếp tốc độ brute-force qua giao diện đồ họa
 - Rút ra kết luận: **khóa ngắn = KHÔNG AN TOÀN**
 
 ---
@@ -19,19 +19,24 @@
 ## 🗂️ Cấu trúc dự án
 
 ```
-aes-bruteforce/
+AES-Brute-Force/
 ├── src/
-│   ├── aes_engine.py      # AES mã hóa/giải mã (Python thuần, From Scratch)
-│   ├── brute_force.py     # Vòng lặp brute-force tuần tự
-│   ├── benchmark.py       # Đo lường & vẽ biểu đồ
-│   ├── gui.py             # Giao diện Tkinter
-│   └── main.py            # Entry point
+│   ├── aes_engine.py      # AES-128 từ Scratch: S-box, GF(2^8), KeyExpansion, ECB, PKCS#7
+│   ├── brute_force.py     # Vét cạn tuần tự + multiprocessing + fast mode
+│   ├── benchmark.py       # Đo lường hiệu năng & vẽ biểu đồ matplotlib
+│   ├── gui.py             # Giao diện Tkinter 3 tab
+│   ├── main.py            # Entry point (GUI / CLI)
+│   └── __init__.py
 ├── tests/
-│   └── test_aes.py        # Unit tests (13 + 4 NIST test cases)
-├── results/               # Biểu đồ & dữ liệu benchmark
-├── docs/                  # Báo cáo & slide
+│   └── test_aes.py        # 19 test cases: unit tests + NIST FIPS-197 vectors
+├── results/
+│   ├── benchmark_chart.png
+│   └── benchmark_data.json
+├── docs/
+│   └── Bao_cao_de_an_AES_Brute_Force.docx
 ├── requirements.txt
-├── .gitignore
+├── run.bat                # Chạy nhanh trên Windows
+├── run.sh                 # Chạy nhanh trên Linux/macOS
 └── README.md
 ```
 
@@ -43,103 +48,116 @@ aes-bruteforce/
 - Python 3.8+
 - pip
 
-### Bước 1: Clone repo
-```bash
-git clone https://github.com/your-username/aes-bruteforce.git
-cd aes-bruteforce
-```
-
-### Bước 2: Cài thư viện
+### Cài thư viện
 ```bash
 pip install -r requirements.txt
 ```
 
-### Bước 3: Kiểm tra
+`requirements.txt` bao gồm:
+```
+matplotlib>=3.7.0
+pytest>=7.0.0
+pycryptodome>=3.19.0
+```
+
+### Kiểm tra nhanh
 ```bash
-python -c "import matplotlib; print('✅ matplotlib OK')"
 python -c "from src.aes_engine import PureAES; print('✅ AES engine OK')"
+python -c "import matplotlib; print('✅ matplotlib OK')"
 ```
 
 ---
 
 ## 🚀 Chạy ứng dụng
 
-### Giao diện đồ họa (GUI)
+### Cách 1 — Script nhanh (khuyến nghị)
+```bash
+# Windows
+run.bat
+
+# Linux / macOS
+bash run.sh
+```
+
+### Cách 2 — Giao diện đồ họa (GUI)
 ```bash
 cd src
 python main.py
 ```
 
-### Chế độ dòng lệnh (CLI)
+### Cách 3 — Dòng lệnh (CLI)
 ```bash
 cd src
-python main.py --cli --text SECRET --bits 16 --workers 4
+python main.py --cli --text SECRET --bits 16
+
+# Với Fast Mode (PyCryptodome):
+python main.py --cli --text SECRET --bits 20 --fast
+
+# Multiprocessing:
+python main.py --cli --text SECRET --bits 20 --workers 4
 ```
 
-### Benchmark riêng lẻ
+### Cách 4 — Benchmark riêng
 ```bash
 cd src
-python benchmark.py --bits 8 12 16 --text SECRET --workers 4
+python benchmark.py --bits 8 12 16 --text SECRET
 ```
 
 ### Chạy tests
 ```bash
 python -m pytest tests/ -v
-# hoặc
-python tests/test_aes.py
 ```
 
 ---
 
 ## 🎯 Hướng dẫn sử dụng GUI
 
-### Tab 1: Mã hóa / Giải mã
-1. Nhập **Plaintext** (ví dụ: `SECRET`)
-2. Chọn **Độ dài khóa** (ví dụ: `16-bit`)
-3. Bấm **🔒 Mã hóa** → xem ciphertext và key thực
-4. Bấm **🔓 Giải mã** → xác nhận decrypt hoạt động
+### Tab 1 — Mã hóa / Giải mã
+1. Nhập **Plaintext** (ví dụ: `HELLO WORLD`)
+2. Chọn **Độ dài khóa**: `8` / `12` / `16` / `20` / `24` / `32` bit
+3. (Tùy chọn) Tích **Dùng key cố định** và nhập giá trị (decimal hoặc `0x...`)
+4. Bấm **🔒 Mã hóa** → xem ciphertext và key thực
+5. Bấm **🔓 Giải mã** → xác nhận decrypt đúng
 
-### Tab 2: Brute-Force Attack
-1. (Ciphertext được tự động copy từ Tab 1)
-2. Chọn **Độ dài khóa** phù hợp
-3. Bấm **⚡ Bắt đầu tấn công**
-4. Quan sát: **progress bar**, **keys/giây**, **thời gian**
-5. Kết quả: key tìm được và plaintext giải mã
+### Tab 2 — Brute-Force Attack
+1. Ciphertext từ Tab 1 được tự động copy sang
+2. Chọn **Độ dài khóa** cần tấn công (phải khớp với khi mã hóa)
+3. (Tùy chọn) Bật **🚀 Fast Mode** — dùng PyCryptodome thay PureAES, nhanh hơn ~5-10×
+4. Bấm **⚡ Bắt đầu tấn công**
+5. Quan sát: progress bar, keys/giây, thời gian thực
+6. Kết quả: key tìm được, plaintext giải mã, so sánh lý thuyết
 
-### Tab 3: Lý thuyết
-Xem bảng ước tính thời gian brute-force cho các mức entropy khóa khác nhau. Đây là mô phỏng học thuật trên AES-128 với phần khóa bí mật được rút gọn.
+### Tab 3 — Lý thuyết
+Bảng ước tính thời gian brute-force và giải thích nguyên lý hoạt động.
 
 ---
 
 ## 📊 Nguyên lý hoạt động
 
-### AES-128 với khóa demo rút gọn
+### Khóa ngắn trong demo
+
+Thay vì dùng khóa 128-bit đầy đủ, demo dùng khóa có entropy nhỏ và pad bằng `0x00`:
+
 ```
-Key demo 16-bit: 0xABCD
-                 ↓
-AES-128 key:    AB CD 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-                └─ 2 bytes secret ─┘└────────────── 14 bytes 0x00 ──────────────┘
+Key 16-bit = 0xABCD:
+  Key AES-128: AB CD 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+               └── 2 bytes bí mật ──┘└────── 14 bytes zeros ──────┘
 ```
 
-### Brute-Force thuật toán
+### Thuật toán Brute-Force
+
 ```python
 for i in range(2 ** key_bits):           # Thử tất cả khóa
     key = i.to_bytes(...).ljust(16, b'\x00')
-    decrypted = AES.decrypt(ciphertext, key)
-    if score_plaintext(decrypted) >= 0.9: # Kiểm tra ASCII + ngưỡng điểm
+    raw = AES.decrypt(ciphertext, key)
+    unpadded = PKCS7_unpad(raw)          # Loại bỏ ~99.97% key sai
+    if score_plaintext(unpadded) >= 0.9: # Kiểm tra ASCII printable
         return key                        # TÌM THẤY!
 ```
 
+**Heuristic lọc**: PKCS#7 padding hợp lệ + tỉ lệ ASCII printable ≥ 90% → loại bỏ gần như toàn bộ kết quả giải mã sai mà không cần biết plaintext trước.
+
 ### Không gian khóa
-| Key entropy | Keyspace       | Thời gian trung bình (~50K keys/s) |
-|------------|----------------|------------------------------------|
-| 8-bit      | 256            | < 0.01 giây                       |
-| 12-bit     | 4,096          | < 0.1 giây                        |
-| 16-bit     | 65,536         | ~0.6 giây                         |
-| 20-bit     | 1,048,576      | ~10 giây                          |
-| 24-bit     | 16,777,216     | ~3 phút                           |
-| 32-bit     | 4,294,967,296  | ~12 giờ                           |
-| 64-bit     | 1.84 × 10¹⁹    | ~5.8 triệu năm                    |
 | **128-bit** | **3.4 × 10³⁸** | **KHÔNG THỂ**                   |
 
 > ⚠️ **ECB Mode Warning**: ECB không dùng IV, plaintext giống nhau → ciphertext giống nhau. Dùng CBC/GCM trong thực tế!
