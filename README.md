@@ -62,8 +62,8 @@ pycryptodome>=3.19.0
 
 ### Kiểm tra nhanh
 ```bash
-python -c "from src.aes_engine import PureAES; print('✅ AES engine OK')"
-python -c "import matplotlib; print('✅ matplotlib OK')"
+python -c "from src.aes_engine import PureAES; print('OK AES engine')"
+python -c "import matplotlib; print('OK matplotlib')"
 ```
 
 ---
@@ -90,10 +90,10 @@ python main.py
 cd src
 python main.py --cli --text SECRET --bits 16
 
-# Với Fast Mode (PyCryptodome):
+# Với Fast Mode (PyCryptodome, nhanh hơn ~5-10x):
 python main.py --cli --text SECRET --bits 20 --fast
 
-# Multiprocessing:
+# Multiprocessing (nhiều core):
 python main.py --cli --text SECRET --bits 20 --workers 4
 ```
 
@@ -106,6 +106,7 @@ python benchmark.py --bits 8 12 16 --text SECRET
 ### Chạy tests
 ```bash
 python -m pytest tests/ -v
+# 19 passed
 ```
 
 ---
@@ -122,7 +123,7 @@ python -m pytest tests/ -v
 ### Tab 2 — Brute-Force Attack
 1. Ciphertext từ Tab 1 được tự động copy sang
 2. Chọn **Độ dài khóa** cần tấn công (phải khớp với khi mã hóa)
-3. (Tùy chọn) Bật **🚀 Fast Mode** — dùng PyCryptodome thay PureAES, nhanh hơn ~5-10×
+3. (Tùy chọn) Bật **🚀 Fast Mode** — dùng PyCryptodome thay PureAES, nhanh hơn ~5–10×
 4. Bấm **⚡ Bắt đầu tấn công**
 5. Quan sát: progress bar, keys/giây, thời gian thực
 6. Kết quả: key tìm được, plaintext giải mã, so sánh lý thuyết
@@ -158,66 +159,81 @@ for i in range(2 ** key_bits):           # Thử tất cả khóa
 **Heuristic lọc**: PKCS#7 padding hợp lệ + tỉ lệ ASCII printable ≥ 90% → loại bỏ gần như toàn bộ kết quả giải mã sai mà không cần biết plaintext trước.
 
 ### Không gian khóa
-| **128-bit** | **3.4 × 10³⁸** | **KHÔNG THỂ**                   |
 
-> ⚠️ **ECB Mode Warning**: ECB không dùng IV, plaintext giống nhau → ciphertext giống nhau. Dùng CBC/GCM trong thực tế!
+| Key entropy | Keyspace         | Thực nghiệm (~100K keys/s) | Trung bình lý thuyết |
+|-------------|------------------|----------------------------|----------------------|
+| 8-bit       | 256              | < 0.001 giây               | < 0.01 giây          |
+| 12-bit      | 4,096            | ~0.05 giây                 | < 0.1 giây           |
+| 16-bit      | 65,536           | ~0.4 giây                  | ~0.6 giây            |
+| 20-bit      | 1,048,576        | ~6 giây                    | ~10 giây             |
+| 24-bit      | 16,777,216       | ~90 giây                   | ~3 phút              |
+| 32-bit      | 4,294,967,296    | —                          | ~12 giờ              |
+| **128-bit** | **3.4 × 10³⁸**   | —                          | **KHÔNG THỂ**        |
 
----
+> *Benchmark thực tế đo được: ~94K–103K keys/giây (PureAES, sequential, Python 3.13)*
 
-## 🧪 Test Cases
-
-| ID   | Key Bits | Plaintext   | Mô tả                              |
-|------|----------|-------------|-------------------------------------|
-| TC01 | 8        | "A"         | Encrypt/Decrypt cơ bản              |
-| TC02 | 16       | "HELLO"     | Encrypt/Decrypt 16-bit              |
-| TC03 | 24       | "HELLO WORLD" | Encrypt/Decrypt 24-bit            |
-| TC04 | 32       | "TEST1234"  | Encrypt/Decrypt 32-bit              |
-| TC05 | 16       | "HELLO"     | Key deterministic                   |
-| TC06 | —        | —           | Hex conversion                      |
-| TC07 | 16       | "SECRET"    | Wrong key → wrong result            |
-| **NIST-B** | Full 128-bit | hex | NIST FIPS-197 Appendix B encrypt |
-| **NIST-B2** | Full 128-bit | hex | NIST FIPS-197 Appendix B decrypt |
-| **NIST-C1** | Full 128-bit | hex | NIST FIPS-197 Appendix C.1       |
-| **NIST-0** | Full 128-bit | zeros | All-zero KAT                    |
-| TC08 | 8        | "ABCDE"     | Brute-force 8-bit (phải thành công) |
-| TC09 | 12       | "HELLO"     | Brute-force 12-bit < 30s            |
-| TC10 | —        | —           | is_valid_plaintext()                |
-| TC11 | 16       | —           | estimate_time() hợp lệ              |
-| TC12 | 8-20     | —           | Keyspace = 2^n                      |
-| TC13 | 8        | "SECRET"    | Full pipeline: encrypt→brute→verify |
+> ⚠️ **ECB Mode**: ECB không dùng IV, cùng plaintext block → cùng ciphertext block. Dùng **CBC/GCM** trong thực tế!
 
 ---
 
 ## 🔧 Công nghệ sử dụng
 
-| Công nghệ       | Mục đích                        |
-|----------------|---------------------------------|
-| Python 3.8+    | Ngôn ngữ lập trình chính        |
-| **Pure AES**   | **AES from scratch (không thư viện)** |
-| tkinter        | Giao diện đồ họa (có sẵn)       |
-| matplotlib     | Vẽ biểu đồ benchmark            |
-| threading      | Chạy brute-force không đơ GUI   |
-| unittest/pytest| Unit testing                    |
+| Công nghệ        | Mục đích                                        |
+|------------------|-------------------------------------------------|
+| Python 3.8+      | Ngôn ngữ chính                                  |
+| **Pure AES**     | AES-128 từ Scratch (S-box, GF(2^8), 10 rounds) |
+| tkinter          | Giao diện đồ họa (built-in)                     |
+| matplotlib       | Vẽ biểu đồ benchmark                            |
+| threading        | Chạy brute-force không đơ GUI                   |
+| multiprocessing  | Tăng tốc brute-force (tùy chọn)                 |
+| pycryptodome     | AES chuẩn cho Fast Mode (tùy chọn)              |
+| unittest / pytest| Unit testing                                    |
+
+---
+
+## 🧪 Test Cases (19 tests — tất cả pass)
+
+| ID            | Loại        | Mô tả                                          |
+|---------------|-------------|------------------------------------------------|
+| TC01          | AES Engine  | Encrypt/Decrypt 8-bit key, plaintext `"A"`     |
+| TC02          | AES Engine  | Encrypt/Decrypt 16-bit key, plaintext `"HELLO"`|
+| TC03          | AES Engine  | Encrypt/Decrypt 24-bit key                     |
+| TC04          | AES Engine  | Encrypt/Decrypt 32-bit key                     |
+| TC05          | AES Engine  | Key deterministic (cùng key_int → cùng kết quả)|
+| TC06          | AES Engine  | Bytes ↔ Hex conversion                        |
+| TC07          | AES Engine  | Key sai → decrypt không ra plaintext gốc       |
+| NIST-B        | NIST Vector | FIPS-197 Appendix B: encrypt ✅               |
+| NIST-B2       | NIST Vector | FIPS-197 Appendix B: decrypt ✅               |
+| NIST-C1-RT    | NIST Vector | FIPS-197 Appendix C.1: round-trip ✅          |
+| NIST-C1-KAT   | NIST Vector | FIPS-197 Appendix C.1: regression guard       |
+| NIST-0        | NIST Vector | All-zero key + all-zero plaintext KAT ✅      |
+| TC08          | Brute-Force | 8-bit key phải tìm thấy                        |
+| TC09          | Brute-Force | 12-bit key tìm thấy trong < 30 giây            |
+| TC10          | Brute-Force | `is_valid_plaintext()` hoạt động đúng          |
+| TC11 / TC11b  | Brute-Force | `estimate_time()` cho 16-bit và 128-bit        |
+| TC12          | Brute-Force | Keyspace = 2^n                                 |
+| TC13          | Integration | Full pipeline: encrypt → brute-force → verify  |
 
 ---
 
 ## 👥 Phân công
 
-| Member | Phần lập trình          | Phần báo cáo        |
-|--------|-------------------------|---------------------|
-| M1     | gui.py (Tkinter UI)     | Chương 1, 2         |
-| M2     | aes_engine.py, brute_force.py | Chương 3 (P1) |
-| M3     | benchmark.py, biểu đồ  | Chương 3 (P2), 4    |
-| M4     | main.py, tích hợp       | Chương 5, Kết luận  |
+| Thành viên | Phần lập trình                    | Phần báo cáo          |
+|-----------|-----------------------------------|-----------------------|
+| M1        | `gui.py` (Tkinter UI)             | Chương 1, 2           |
+| M2        | `aes_engine.py`, `brute_force.py` | Chương 3 (Phần 1)     |
+| M3        | `benchmark.py`, biểu đồ          | Chương 3 (Phần 2), 4  |
+| M4        | `main.py`, tích hợp, tests        | Chương 5, Kết luận    |
 
 ---
 
 ## 📚 Tài liệu tham khảo
 
-1. NIST FIPS-197: https://csrc.nist.gov/publications/detail/fips/197/final
-2. matplotlib: https://matplotlib.org/
-3. Stallings, W. *Cryptography and Network Security* (8th ed.)
-4. Paar, C. *Understanding Cryptography*
+1. NIST FIPS-197 — Advanced Encryption Standard: <https://csrc.nist.gov/publications/detail/fips/197/final>
+2. Stallings, W. *Cryptography and Network Security* (8th ed.)
+3. Paar, C. *Understanding Cryptography*
+4. matplotlib Documentation: <https://matplotlib.org/>
+5. PyCryptodome Documentation: <https://pycryptodome.readthedocs.io/>
 
 ---
 
@@ -225,6 +241,3 @@ for i in range(2 ** key_bits):           # Thử tất cả khóa
 
 > Dự án này chỉ phục vụ mục đích **học thuật và giáo dục**.  
 > Không áp dụng kỹ thuật này để tấn công hệ thống thực tế.
-
----
-
