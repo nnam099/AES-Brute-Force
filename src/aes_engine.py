@@ -1,15 +1,5 @@
-"""
-aes_engine.py - AES Encryption/Decryption Engine
-Thuần túy học thuật (Từ Scratch). Không sử dụng PyCryptodome.
-Minh họa AES với khóa ngắn được pad thành 16 bytes.
-"""
-
 import os
 from typing import Optional, Tuple
-
-# =====================================================================
-# BẢNG TRA CỨU AES (AES LOOKUP TABLES)
-# =====================================================================
 
 Sbox = (
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
@@ -54,16 +44,10 @@ Rcon = (
     0x80, 0x1B, 0x36, 0x6C, 0xD8, 0xAB, 0x4D, 0x9A,
 )
 
-# =====================================================================
-# CÁC HÀM TOÁN HỌC TRÊN TRƯỜNG GALOIS GF(2^8)
-# =====================================================================
-
 def xtime(a: int) -> int:
-    """Nhân đa thức với x trên GF(2^8)."""
     return (((a << 1) ^ 0x1B) & 0xFF) if (a & 0x80) else (a << 1)
 
 def multiply(x: int, y: int) -> int:
-    """Nhân 2 đa thức trên GF(2^8)."""
     ans = 0
     for i in range(8):
         if y & 1:
@@ -76,52 +60,44 @@ def multiply(x: int, y: int) -> int:
         y >>= 1
     return ans
 
-# =====================================================================
-# CÁC PHÉP BIẾN ĐỔI CHÍNH TRONG AES
-# =====================================================================
-
 def bytes2matrix(text: bytes) -> list:
-    """Chuyển đổi block 16 bytes thành ma trận trạng thái 4x4.
-    Convention nội bộ: state[group][element] trong đó mỗi group = 4 bytes liên tiếp.
-    Thứ tự bytes: b0..b3 = group0, b4..b7 = group1, ..."""
+    """Chuyển 16 bytes thành state 4x4. Mỗi phần tử là 1 cột: state[c][r] = text[4c+r]."""
     return [list(text[i:i+4]) for i in range(0, len(text), 4)]
 
 def matrix2bytes(matrix: list) -> bytes:
-    """Chuyển đổi ma trận trạng thái 4x4 thành block 16 bytes."""
+    """Chuyển state 4x4 về bytes (cột-chính)."""
     return bytes(sum(matrix, []))
 
 def add_round_key(state: list, key_schedule: list, round_num: int):
-    """Cộng khóa vòng (XOR)."""
+    """XOR mỗi cột c của state với word tương ứng trong key schedule."""
     for c in range(4):
         for r in range(4):
             state[c][r] ^= key_schedule[round_num * 4 + c][r]
 
 def sub_bytes(state: list):
-    """Thay thế byte không tuyến tính thông qua S-box."""
     for c in range(4):
         for r in range(4):
             state[c][r] = Sbox[state[c][r]]
 
 def inv_sub_bytes(state: list):
-    """Thay thế byte ngược thông qua Inverse S-box."""
     for c in range(4):
         for r in range(4):
             state[c][r] = InvSbox[state[c][r]]
 
 def shift_rows(state: list):
-    """Dịch vòng các hàng (ShiftRows)."""
+    """Rotate trái từng hàng r đi r vị trí. Với convention state[col][row],
+    hàng r = [state[c][r] for c in range(4)]."""
     state[0][1], state[1][1], state[2][1], state[3][1] = state[1][1], state[2][1], state[3][1], state[0][1]
     state[0][2], state[1][2], state[2][2], state[3][2] = state[2][2], state[3][2], state[0][2], state[1][2]
     state[0][3], state[1][3], state[2][3], state[3][3] = state[3][3], state[0][3], state[1][3], state[2][3]
 
 def inv_shift_rows(state: list):
-    """Dịch vòng ngược các hàng (InvShiftRows)."""
+    """Nghịch đảo ShiftRows: rotate phải từng hàng r."""
     state[1][1], state[2][1], state[3][1], state[0][1] = state[0][1], state[1][1], state[2][1], state[3][1]
     state[2][2], state[3][2], state[0][2], state[1][2] = state[0][2], state[1][2], state[2][2], state[3][2]
     state[3][3], state[0][3], state[1][3], state[2][3] = state[0][3], state[1][3], state[2][3], state[3][3]
 
 def mix_single_column(a: list):
-    """Trộn 1 cột cho MixColumns."""
     t = a[0] ^ a[1] ^ a[2] ^ a[3]
     u = a[0]
     a[0] ^= t ^ xtime(a[0] ^ a[1])
@@ -130,12 +106,11 @@ def mix_single_column(a: list):
     a[3] ^= t ^ xtime(a[3] ^ u)
 
 def mix_columns(state: list):
-    """Trộn cột (MixColumns)."""
+    """MixColumns: áp dụng lên từng cột state[c] (NIST FIPS-197 §5.1.3)."""
     for i in range(4):
         mix_single_column(state[i])
 
 def inv_mix_single_column(a: list):
-    """Trộn ngược 1 cột cho InvMixColumns."""
     u = multiply(a[0], 0x0e) ^ multiply(a[1], 0x0b) ^ multiply(a[2], 0x0d) ^ multiply(a[3], 0x09)
     v = multiply(a[0], 0x09) ^ multiply(a[1], 0x0e) ^ multiply(a[2], 0x0b) ^ multiply(a[3], 0x0d)
     w = multiply(a[0], 0x0d) ^ multiply(a[1], 0x09) ^ multiply(a[2], 0x0e) ^ multiply(a[3], 0x0b)
@@ -146,12 +121,11 @@ def inv_mix_single_column(a: list):
     a[3] = x
 
 def inv_mix_columns(state: list):
-    """Trộn ngược cột (InvMixColumns)."""
+    """InvMixColumns: áp dụng lên từng cột."""
     for i in range(4):
         inv_mix_single_column(state[i])
 
 def key_expansion(key: bytes) -> list:
-    """Mở rộng khóa (KeyExpansion) cho AES-128."""
     key_symbols = [list(key[i:i+4]) for i in range(0, 16, 4)]
     key_schedule = []
     for i in range(4):
@@ -160,23 +134,15 @@ def key_expansion(key: bytes) -> list:
     for i in range(4, 4 * 11):
         temp = key_schedule[i - 1][:]
         if i % 4 == 0:
-            # RotWord
             temp = temp[1:] + temp[:1]
-            # SubWord
             temp = [Sbox[b] for b in temp]
-            # Rcon
             temp[0] ^= Rcon[i // 4]
         
         word = [key_schedule[i - 4][r] ^ temp[r] for r in range(4)]
         key_schedule.append(word)
     return key_schedule
 
-# =====================================================================
-# XỬ LÝ KHỐI AES
-# =====================================================================
-
 def encrypt_block(plaintext: bytes, key_schedule: list) -> bytes:
-    """Mã hóa 1 khối 16 bytes."""
     state = bytes2matrix(plaintext)
     add_round_key(state, key_schedule, 0)
     
@@ -185,15 +151,13 @@ def encrypt_block(plaintext: bytes, key_schedule: list) -> bytes:
         shift_rows(state)
         mix_columns(state)
         add_round_key(state, key_schedule, round_num)
-        
-    # Vòng cuối không có mix_columns
+
     sub_bytes(state)
     shift_rows(state)
     add_round_key(state, key_schedule, 10)
     return matrix2bytes(state)
 
 def decrypt_block(ciphertext: bytes, key_schedule: list) -> bytes:
-    """Giải mã 1 khối 16 bytes."""
     state = bytes2matrix(ciphertext)
     add_round_key(state, key_schedule, 10)
     
@@ -203,23 +167,16 @@ def decrypt_block(ciphertext: bytes, key_schedule: list) -> bytes:
         add_round_key(state, key_schedule, round_num)
         inv_mix_columns(state)
         
-    # Vòng cuối
     inv_shift_rows(state)
     inv_sub_bytes(state)
     add_round_key(state, key_schedule, 0)
     return matrix2bytes(state)
 
-# =====================================================================
-# PADDING & UNPADDING (PKCS#7)
-# =====================================================================
-
 def pad(data: bytes, block_size: int = 16) -> bytes:
-    """Thêm padding theo chuẩn PKCS#7."""
     pad_len = block_size - (len(data) % block_size)
     return data + bytes([pad_len] * pad_len)
 
 def unpad(data: bytes, block_size: int = 16) -> bytes:
-    """Loại bỏ padding PKCS#7."""
     if len(data) == 0:
         raise ValueError("Dữ liệu trống.")
     pad_len = data[-1]
@@ -230,7 +187,6 @@ def unpad(data: bytes, block_size: int = 16) -> bytes:
     return data[:-pad_len]
 
 class PureAES:
-    """Lớp quản lý mã hóa/giải mã AES thuần túy."""
     def __init__(self, key: bytes):
         if len(key) != 16:
             raise ValueError("Chỉ hỗ trợ AES-128 (khóa 16 bytes).")
@@ -252,23 +208,15 @@ class PureAES:
             plaintext += decrypt_block(data[i:i+16], self.key_schedule)
         return plaintext
 
-# =====================================================================
-# PHẦN QUẢN LÝ KHÓA NGẮN VÀ GIAO DIỆN CŨ (ĐỂ TƯƠNG THÍCH)
-# =====================================================================
-
 SUPPORTED_KEY_BITS = [8, 12, 16, 20, 24, 32]
 
 def validate_key_bits(bits: int) -> None:
-    """Kiểm tra độ dài khóa được hỗ trợ."""
     if bits not in SUPPORTED_KEY_BITS:
         raise ValueError(
             f"Độ dài khóa không hợp lệ: {bits}. Hỗ trợ: {SUPPORTED_KEY_BITS}"
         )
 
 def generate_short_key(bits: int, key_int: Optional[int] = None) -> bytes:
-    """
-    Tạo khóa ngắn và pad thành 16 bytes.
-    """
     validate_key_bits(bits)
 
     key_bytes_len = (bits + 7) // 8
@@ -285,9 +233,6 @@ def generate_short_key(bits: int, key_int: Optional[int] = None) -> bytes:
     return key_part.ljust(16, b'\x00')
 
 def key_int_to_bytes(key_int: int, key_bits: int) -> bytes:
-    """
-    Chuyển số nguyên thành key bytes, rồi pad tới 16 bytes.
-    """
     validate_key_bits(key_bits)
     max_val = (1 << key_bits) - 1
     if key_int < 0 or key_int > max_val:
@@ -305,9 +250,6 @@ def encrypt_aes(
     key: Optional[bytes] = None,
     key_int: Optional[int] = None,
 ) -> Tuple[bytes, bytes, int]:
-    """
-    Mã hóa plaintext bằng thuật toán AES thuần túy từ Scratch với khóa ngắn.
-    """
     validate_key_bits(key_bits)
 
     if key is not None and key_int is not None:
@@ -332,9 +274,6 @@ def encrypt_aes(
     return ciphertext, key, key_int
 
 def decrypt_aes(ciphertext: bytes, key: bytes) -> Optional[str]:
-    """
-    Giải mã ciphertext bằng thuật toán AES thuần túy từ Scratch.
-    """
     try:
         cipher = PureAES(key)
         padded_data = cipher.decrypt(ciphertext)
@@ -343,11 +282,9 @@ def decrypt_aes(ciphertext: bytes, key: bytes) -> Optional[str]:
         return None
 
 def bytes_to_hex(data: bytes) -> str:
-    """Chuyển bytes sang chuỗi hex dễ đọc."""
     return data.hex().upper()
 
 def hex_to_bytes(hex_str: str) -> bytes:
-    """Chuyển chuỗi hex sang bytes."""
     return bytes.fromhex(hex_str.strip())
 
 if __name__ == "__main__":
