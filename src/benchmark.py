@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
 import time
 from typing import List, Sequence
 
@@ -20,6 +21,16 @@ from brute_force import brute_force_aes, estimate_time, SUPPORTED_KEY_BITS
 
 DEFAULT_KEY_BITS = [8, 12, 16]
 RESULTS_DIR = Path(__file__).resolve().parent.parent / "results"
+
+
+def configure_console() -> None:
+    """Use UTF-8 console output when supported, especially on Windows."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
 
 
 def benchmark_key_length(
@@ -201,6 +212,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 
 def main(argv: Sequence[str] | None = None) -> None:
+    configure_console()
     args = parse_args(argv)
     results = run_all_benchmarks(key_bits_list=args.bits, test_text=args.text, workers=args.workers)
 
