@@ -18,8 +18,8 @@ from brute_force import brute_force_aes, is_valid_plaintext, estimate_time
 from benchmark import benchmark_key_length, parse_args, resolve_output_paths
 
 
-class TestAESEngine(unittest.TestCase):
-    """Test cases cho AES Engine."""
+class TestDongCoAES(unittest.TestCase):
+    """Kiểm thử bộ mã hóa AES."""
 
     def test_tc01_ma_hoa_giai_ma_8bit(self):
         """TC01: Mã hóa/giải mã với khóa 8-bit, bản rõ 'A'."""
@@ -74,16 +74,16 @@ class TestAESEngine(unittest.TestCase):
         """TC07: Khóa sai → giải mã không ra bản rõ gốc."""
         plaintext = "SECRET"
         ciphertext, key, key_int = encrypt_aes(plaintext, 16)
-        wrong_key = key_int_to_bytes(key_int + 1, 16)  # Key sai đi 1
+        wrong_key = key_int_to_bytes(key_int + 1, 16)  # Khóa sai đi 1
         result = decrypt_aes(ciphertext, wrong_key)
-        # Kết quả có thể là None hoặc garbage (không phải plaintext gốc)
+        # Kết quả có thể là None hoặc dữ liệu rác (không phải bản rõ gốc)
         self.assertNotEqual(result, plaintext)
         print("TC07 ĐẠT: Khóa sai cho kết quả giải mã sai")
 
-class TestNISTVectors(unittest.TestCase):
-    """Kiểm tra AES-128 với NIST FIPS-197 Known Answer Test Vectors."""
+class TestVectorNIST(unittest.TestCase):
+    """Kiểm tra AES-128 với vector chuẩn NIST FIPS-197."""
 
-    def test_nist_encrypt_appendix_b(self):
+    def test_nist_ma_hoa_appendix_b(self):
         """
         NIST FIPS-197 Appendix B:
         Khóa  : 2b7e151628aed2a6abf7158809cf4f3c
@@ -102,7 +102,7 @@ class TestNISTVectors(unittest.TestCase):
                          f"Thực tế : {actual_ct.hex()}")
         print("NIST TC-B ĐẠT: Mã hóa Appendix B")
 
-    def test_nist_decrypt_appendix_b(self):
+    def test_nist_giai_ma_appendix_b(self):
         """
         NIST FIPS-197 Appendix B (inverse):
         Giải mã bản mã phải ra đúng bản rõ gốc.
@@ -119,9 +119,9 @@ class TestNISTVectors(unittest.TestCase):
                          f"Thực tế : {actual_pt.hex()}")
         print("NIST TC-B ĐẠT: Giải mã Appendix B")
 
-    def test_nist_encrypt_appendix_c1_roundtrip(self):
+    def test_nist_appendix_c1_vong_di_ve(self):
         """
-        NIST FIPS-197 Appendix C.1 (AES-128) — kiểm tra vòng đi-về:
+        NIST FIPS-197 Appendix C.1 (AES-128) - kiểm tra vòng đi-về:
         Khóa  : 000102030405060708090a0b0c0d0e0f
         Bản rõ: 00112233445566778899aabbccddeeff
 
@@ -139,23 +139,23 @@ class TestNISTVectors(unittest.TestCase):
                          f"Thực tế : {decrypted.hex()}")
         print(f"NIST TC-C1 ĐẠT: Vòng đi-về đúng (bản mã={ciphertext.hex()})")
 
-    def test_nist_encrypt_appendix_c1_kat(self):
+    def test_nist_appendix_c1_kat(self):
         """
         NIST FIPS-197 Appendix C.1 (AES-128) — Known Answer Test (KAT):
         Khóa   : 000102030405060708090a0b0c0d0e0f
         Bản rõ : 00112233445566778899aabbccddeeff
         Kỳ vọng: 69c4e0d86a7b0430d8cdb78070b4c55a
 
-        LƯU Ý: Giá trị expected này đã được xác nhận bởi PyCryptodome (thư viện
+        LƯU Ý: Giá trị kỳ vọng này đã được xác nhận bởi PyCryptodome (thư viện
         AES chuẩn). Giá trị cũ 69c4e0d86a7b04300d8a8bb2aa35e6a1 là sai — đó là
         bản mã của AES-256, không phải AES-128 với khóa 128-bit này.
 
-        Engine dùng convention state[col][row] (state[c] = cột c = bytes [4c..4c+3])
-        — đây là column-major đúng theo NIST FIPS-197.
+        Bộ mã hóa dùng quy ước state[col][row] (state[c] = cột c = bytes [4c..4c+3])
+        - đây là dạng cột chính đúng theo NIST FIPS-197.
         """
         key = bytes.fromhex("000102030405060708090a0b0c0d0e0f")
         plaintext = bytes.fromhex("00112233445566778899aabbccddeeff")
-        # Verified correct AES-128 ciphertext (confirmed by PyCryptodome)
+        # Bản mã AES-128 đúng, đã xác nhận bằng PyCryptodome.
         expected_ct = bytes.fromhex("69c4e0d86a7b0430d8cdb78070b4c55a")
 
         aes = PureAES(key)
@@ -167,7 +167,7 @@ class TestNISTVectors(unittest.TestCase):
                          f"Thực tế : {actual_ct.hex()}")
         print(f"NIST TC-C1 KAT ĐẠT: bản mã={actual_ct.hex()} (xác nhận bởi PyCryptodome)")
 
-    def test_nist_zero_key_zero_plaintext(self):
+    def test_nist_khoa_0_ban_ro_0(self):
         """
         Khóa toàn 0 + bản rõ toàn 0:
         Khóa  : 00000000000000000000000000000000
@@ -188,7 +188,7 @@ class TestNISTVectors(unittest.TestCase):
 
 
 class TestVetCan(unittest.TestCase):
-    """Test cases cho vét cạn."""
+    """Kiểm thử vét cạn."""
 
     def test_tc08_vet_can_8bit(self):
         """TC08: Vét cạn khóa 8-bit phải tìm thấy."""
@@ -213,9 +213,9 @@ class TestVetCan(unittest.TestCase):
 
     def test_tc10_is_valid_plaintext(self):
         """TC10: Kiểm tra hàm is_valid_plaintext."""
-        # ASCII printable
+        # ASCII in được
         self.assertTrue(is_valid_plaintext(b"HELLO WORLD123"))
-        # Binary data (random bytes thường không printable)
+        # Dữ liệu nhị phân thường không in được
         self.assertFalse(is_valid_plaintext(bytes([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06])))
         print("TC10 ĐẠT: is_valid_plaintext hoạt động đúng")
 
@@ -259,7 +259,7 @@ class TestTichHop(unittest.TestCase):
 
 
 class TestDoHieuNang(unittest.TestCase):
-    """Test cases cho tiện ích đo hiệu năng."""
+    """Kiểm thử tiện ích đo hiệu năng."""
 
     def test_tc14_doc_key_int_hex(self):
         """TC14: --key-int chấp nhận giá trị hex."""
