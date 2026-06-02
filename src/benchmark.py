@@ -7,8 +7,9 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
 import time
-from typing import List, Sequence
+from typing import List, Optional, Sequence
 
 import matplotlib
 matplotlib.use('Agg')  # Non-interactive backend
@@ -22,11 +23,32 @@ DEFAULT_KEY_BITS = [8, 12, 16]
 RESULTS_DIR = Path(__file__).resolve().parent.parent / "results"
 
 
+def configure_console() -> None:
+    """Use UTF-8 console output when supported, especially on Windows."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
+
+
+def parse_int(value: str) -> int:
+    """Parse decimal or 0x-prefixed integers for CLI options."""
+    try:
+        return int(value, 0)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            f"Invalid integer value: {value!r}"
+        ) from exc
+
+
 def benchmark_key_length(
     key_bits: int,
     test_text: str = "SECRET",
     verbose: bool = True,
     workers: int = 1,
+    key_int: Optional[int] = None,
 ) -> dict:
     """Đo thời gian brute-force cho một độ dài khóa cụ thể."""
     if verbose:
@@ -34,10 +56,11 @@ def benchmark_key_length(
         print(f"  Keyspace: 2^{key_bits} = {2**key_bits:,} keys")
         print(f"  Encrypting '{test_text}'...")
 
-    ciphertext, key, key_int = encrypt_aes(test_text, key_bits)
+    ciphertext, key, actual_key_int = encrypt_aes(test_text, key_bits, key_int=key_int)
 
     if verbose:
-        print(f"  Key value: {key_int} (0x{key_int:0{key_bits//4}X})")
+        label = "Fixed key value" if key_int is not None else "Key value"
+        print(f"  {label}: {actual_key_int} (0x{actual_key_int:0{key_bits//4}X})")
         print("  Running brute-force...")
 
     result = brute_force_aes(ciphertext, key_bits, workers=workers)
@@ -46,7 +69,7 @@ def benchmark_key_length(
         'key_bits': key_bits,
         'keyspace': 1 << key_bits,
         'test_text': test_text,
-        'actual_key_int': key_int,
+        'actual_key_int': actual_key_int,
         'found': result['found'],
         'found_key_int': result.get('key_int'),
         'found_plaintext': result.get('plaintext'),
@@ -71,6 +94,7 @@ def run_all_benchmarks(
     key_bits_list: List[int] = None,
     test_text: str = "SECRET",
     workers: int = 1,
+    key_int: Optional[int] = None,
 ) -> List[dict]:
     """Chạy benchmark cho một hoặc nhiều độ dài khóa."""
     if key_bits_list is None:
@@ -81,12 +105,14 @@ def run_all_benchmarks(
     print("=" * 55)
     print(f"  Test text: '{test_text}'")
     print(f"  Key lengths: {key_bits_list} bits")
+    if key_int is not None:
+        print(f"  Fixed key: {key_int} (0x{key_int:X})")
 
     results = []
     for bits in key_bits_list:
         if bits not in SUPPORTED_KEY_BITS:
             raise ValueError(f"Độ dài khóa không hợp lệ: {bits}. Hỗ trợ: {SUPPORTED_KEY_BITS}")
-        results.append(benchmark_key_length(bits, test_text, workers=workers))
+        results.append(benchmark_key_length(bits, test_text, workers=workers, key_int=key_int))
 
     print("\n" + "=" * 55)
     print("  SUMMARY TABLE")
@@ -193,6 +219,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument('--text', default='SECRET', help='Plaintext dùng cho benchmark.')
     parser.add_argument('--workers', type=int, default=1, help='So luong process cho brute-force.')
+    parser.add_argument('--key-int', type=parse_int, default=None, help='Fixed key value for reproducible benchmark runs; accepts decimal or 0x...')
     parser.add_argument('--output', default=str(RESULTS_DIR / 'benchmark_chart.png'), help='Đường dẫn lưu biểu đồ.')
     parser.add_argument('--json', default=str(RESULTS_DIR / 'benchmark_data.json'), help='Đường dẫn lưu dữ liệu JSON.')
     parser.add_argument('--no-plot', action='store_true', help='Không vẽ biểu đồ.')
@@ -201,8 +228,14 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 
 def main(argv: Sequence[str] | None = None) -> None:
+    configure_console()
     args = parse_args(argv)
-    results = run_all_benchmarks(key_bits_list=args.bits, test_text=args.text, workers=args.workers)
+    results = run_all_benchmarks(
+        key_bits_list=args.bits,
+        test_text=args.text,
+        workers=args.workers,
+        key_int=args.key_int,
+    )
 
     if not args.no_plot:
         plot_results(results, save_path=args.output)
