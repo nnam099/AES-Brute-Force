@@ -1,5 +1,5 @@
 """
-main.py - Entry point ứng dụng AES Brute-Force Demo
+main.py - Điểm khởi chạy ứng dụng minh họa vét cạn AES
 Chạy: python main.py [--cli] [--text TEXT] [--bits BITS]
 """
 
@@ -48,31 +48,31 @@ def check_dependencies() -> None:
         print("\nCài đặt: pip install matplotlib")
         sys.exit(1)
 
-    print("[OK] Tat ca thu vien OK")
+    print("[ĐẠT] Tất cả thư viện cần thiết đã sẵn sàng")
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="AES Brute-Force Demo: GUI hoặc CLI mode.",
+        description="Minh họa vét cạn AES: chạy giao diện đồ họa hoặc dòng lệnh.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("--cli", action="store_true", help="Chạy chế độ dòng lệnh CLI.")
     parser.add_argument("--gui", action="store_true", help="Buộc chạy giao diện Tkinter.")
     parser.add_argument("--no-gui", action="store_true", help="Không chạy GUI, chỉ CLI.")
-    parser.add_argument("--fast", action="store_true", help="Sử dụng PyCryptodome (Fast Mode).")
-    parser.add_argument("--text", default="SECRET", help="Plaintext cho CLI mode.")
+    parser.add_argument("--fast", action="store_true", help="Sử dụng PyCryptodome (chế độ nhanh).")
+    parser.add_argument("--text", default="SECRET", help="Bản rõ cho chế độ dòng lệnh.")
     parser.add_argument(
         "--bits",
         type=int,
         choices=SUPPORTED_KEY_BITS,
         default=16,
-        help="Độ dài khóa để mã hóa và brute-force.",
+        help="Độ dài khóa để mã hóa và vét cạn.",
     )
     parser.add_argument(
         "--workers",
         type=int,
         default=1,
-        help="So luong process dung cho brute-force (>=1).",
+        help="Số tiến trình dùng cho vét cạn (>=1).",
     )
     return parser.parse_args(argv)
 
@@ -94,23 +94,23 @@ def run_gui() -> None:
 
 
 def run_cli(plaintext: str, key_bits: int, workers: int, fast_mode: bool = False) -> None:
-    """Chạy demo CLI với plaintext và key_bits đã khai báo."""
+    """Chạy minh họa dòng lệnh với plaintext và key_bits đã khai báo."""
     from aes_engine import encrypt_aes, bytes_to_hex
     from brute_force import brute_force_aes, estimate_time
 
     print("=" * 55)
-    print("  AES BRUTE-FORCE DEMO (CLI Mode)")
+    print("  MINH HỌA VÉT CẠN AES (CHẾ ĐỘ DÒNG LỆNH)")
     print("=" * 55)
-    print(f"Plaintext : {plaintext}")
-    print(f"Key bits  : {key_bits}-bit")
+    print(f"Bản rõ       : {plaintext}")
+    print(f"Độ dài khóa  : {key_bits}-bit")
 
     ciphertext, key, key_int = encrypt_aes(plaintext, key_bits)
-    print(f"\n[Encrypt] {plaintext!r} → cipher text")
-    print(f"  Key (int)  : {key_int}")
-    print(f"  Key (hex)  : 0x{key_int:0{key_bits//4}X}")
-    print(f"  Ciphertext : {bytes_to_hex(ciphertext)}")
+    print(f"\n[Mã hóa] {plaintext!r} → bản mã")
+    print(f"  Khóa (số nguyên) : {key_int}")
+    print(f"  Khóa (hex)       : 0x{key_int:0{key_bits//4}X}")
+    print(f"  Bản mã           : {bytes_to_hex(ciphertext)}")
 
-    print(f"\n[Brute-force] Thử {2 ** key_bits:,} khóa...")
+    print(f"\n[Vét cạn] Thử {2 ** key_bits:,} khóa...")
 
     milestone = max(1, (2 ** key_bits) // 20)
 
@@ -120,28 +120,28 @@ def run_cli(plaintext: str, key_bits: int, workers: int, fast_mode: bool = False
             kps = current / elapsed if elapsed > 0 else 0
             print(
                 f"  [{pct:5.1f}%] {current:>8,} / {total:,} | "
-                f"{elapsed:.1f}s | {kps:,.0f} keys/s"
+                f"{elapsed:.1f}s | {kps:,.0f} khóa/giây"
             )
 
     result = brute_force_aes(ciphertext, key_bits, callback=progress_cb, workers=workers, fast_mode=fast_mode)
 
     print("\n" + "=" * 55)
     if result['found']:
-        print("[OK] Key tim thay!")
-        print(f"   Key (int)   : {result['key_int']}")
-        print(f"   Key (hex)   : 0x{result['key_hex']}")
-        print(f"   Plaintext   : {result['plaintext']}")
-        print(f"   Time        : {result['elapsed_seconds']:.3f}s")
-        print(f"   Keys tested : {result['keys_tested']:,}")
-        print(f"   Keys/s      : {result['keys_per_second']:,.0f}")
+        print("[ĐẠT] Đã tìm thấy khóa!")
+        print(f"   Khóa (số nguyên) : {result['key_int']}")
+        print(f"   Khóa (hex)       : 0x{result['key_hex']}")
+        print(f"   Bản rõ           : {result['plaintext']}")
+        print(f"   Thời gian        : {result['elapsed_seconds']:.3f}s")
+        print(f"   Số khóa đã thử   : {result['keys_tested']:,}")
+        print(f"   Tốc độ           : {result['keys_per_second']:,.0f} khóa/giây")
     else:
-        print("[FAIL] Khong tim thay key.")
+        print("[LỖI] Không tìm thấy khóa.")
 
     print("\n[Ước tính thời gian với tốc độ thực tế]")
     measured_kps = result['keys_per_second'] if result['keys_per_second'] > 0 else 50_000
     for b in [16, 20, 24, 32, 64, 128]:
         est = estimate_time(b, measured_kps)
-        print(f"  {b:>4}-bit : {est['keyspace_formatted']:32s} | Avg: {est['avg_time_formatted']}")
+        print(f"  {b:>4}-bit : {est['keyspace_formatted']:32s} | Trung bình: {est['avg_time_formatted']}")
 
 
 def main(argv: Sequence[str] | None = None) -> None:
@@ -155,7 +155,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             run_gui()
             return
         except ImportError:
-            print("[WARN] Tkinter khong kha dung. Chuyen sang CLI...")
+            print("[CẢNH BÁO] Tkinter không khả dụng. Chuyển sang chế độ dòng lệnh...")
 
     run_cli(args.text, args.bits, args.workers, args.fast)
 

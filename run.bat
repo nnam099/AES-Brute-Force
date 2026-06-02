@@ -1,23 +1,23 @@
 @echo off
 echo ============================================
-echo   AES Brute-Force Demo
+echo   Minh hoa vet can AES
 echo ============================================
 echo.
 
 :: Kiem tra Python
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] Python khong tim thay! Hay cai Python 3.8+
+    echo [LOI] Khong tim thay Python! Hay cai Python 3.8+
     pause
     exit /b 1
 )
 
 :: Cai thu vien neu chua co
-echo [*] Kiem tra thu vien...
-pip install pycryptodome matplotlib -q
+echo [*] Dang kiem tra va cai thu vien...
+pip install -r requirements.txt -q
 
 echo.
-echo [*] Khoi chay ung dung...
+echo [*] Dang khoi chay ung dung...
 cd src
 python main.py
 

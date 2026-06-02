@@ -1,6 +1,6 @@
 """
 gui.py - Giao diện đồ họa Tkinter
-Minh họa AES Brute-Force Attack
+Minh họa tấn công vét cạn AES
 """
 
 import tkinter as tk
@@ -10,11 +10,11 @@ import time
 import multiprocessing
 
 class AESBruteForceApp:
-    """Ứng dụng GUI chính minh họa AES Brute-Force."""
+    """Ứng dụng GUI chính minh họa vét cạn AES."""
 
     def __init__(self, root):
         self.root = root
-        self.root.title("🔐 AES Brute-Force Demo - Mật Mã Học")
+        self.root.title("🔐 Minh Họa Vét Cạn AES - Mật Mã Học")
         self.root.geometry("960x720")
         self.root.configure(bg="#24273A")
         self.root.resizable(True, True)
@@ -40,13 +40,13 @@ class AESBruteForceApp:
         hdr.pack(fill=tk.X)
         tk.Label(
             hdr,
-            text="🔐 AES Brute-Force Attack",
+            text="🔐 Tấn Công Vét Cạn AES",
             font=("Segoe UI", 18, "bold"),
             bg="#1E2030", fg="#CAD3F5"
         ).pack()
         tk.Label(
             hdr,
-            text="Minh họa Phương pháp Thám Mã Khóa Ngắn  |  Python thuần (From Scratch)",
+            text="Minh họa phương pháp thám mã khóa ngắn  |  Python thuần",
             font=("Segoe UI", 10),
             bg="#1E2030", fg="#A5ADCB"
         ).pack(pady=(4, 0))
@@ -76,7 +76,7 @@ class AESBruteForceApp:
             anchor='w', padx=16, pady=6
         ).pack(fill=tk.X, side=tk.BOTTOM)
 
-    # ── Tab 1: Encrypt / Decrypt ──────────────────
+    # ── Tab 1: Mã hóa / Giải mã ──────────────────
 
     def _build_tab_encrypt(self):
         frame = tk.Frame(self.nb, bg="#24273A")
@@ -86,7 +86,7 @@ class AESBruteForceApp:
         input_frame = tk.Frame(frame, bg="#24273A")
         input_frame.pack(fill=tk.X, padx=20, pady=16)
 
-        self._label(input_frame, "📝 Plaintext (văn bản gốc):").grid(row=0, column=0, sticky='w', pady=8, padx=(0, 10))
+        self._label(input_frame, "📝 Bản rõ (văn bản gốc):").grid(row=0, column=0, sticky='w', pady=8, padx=(0, 10))
         self.enc_plaintext = self._entry(input_frame, width=54)
         self.enc_plaintext.insert(0, "HELLO WORLD")
         self.enc_plaintext.grid(row=0, column=1, sticky='w', pady=8)
@@ -103,12 +103,12 @@ class AESBruteForceApp:
                 font=("Segoe UI", 10, "bold"), cursor="hand2"
             ).pack(side=tk.LEFT, padx=6)
 
-        self._label(input_frame, "🔢 Key cố định (tùy chọn):").grid(row=2, column=0, sticky='w', pady=8, padx=(0, 10))
+        self._label(input_frame, "🔢 Khóa cố định (tùy chọn):").grid(row=2, column=0, sticky='w', pady=8, padx=(0, 10))
         fixed_key_frame = tk.Frame(input_frame, bg="#24273A")
         fixed_key_frame.grid(row=2, column=1, sticky='w', pady=8)
         self.enc_use_fixed_key = tk.BooleanVar(value=False)
         tk.Checkbutton(
-            fixed_key_frame, text="Dùng key cố định", variable=self.enc_use_fixed_key,
+            fixed_key_frame, text="Dùng khóa cố định", variable=self.enc_use_fixed_key,
             bg="#24273A", fg="#CAD3F5", selectcolor="#1E2030",
             activebackground="#24273A", activeforeground="#8AADF4",
             font=("Segoe UI", 10, "bold")
@@ -125,8 +125,8 @@ class AESBruteForceApp:
         # Actions
         act_frame = tk.Frame(frame, bg="#24273A")
         act_frame.pack(fill=tk.X, padx=20, pady=5)
-        self._btn(act_frame, "🔒  Mã hóa (Encrypt)", self._do_encrypt, "#8AADF4").pack(side=tk.LEFT, padx=(0, 12))
-        self._btn(act_frame, "🔓  Giải mã (Decrypt)", self._do_decrypt, "#A6DA95").pack(side=tk.LEFT, padx=12)
+        self._btn(act_frame, "🔒  Mã hóa", self._do_encrypt, "#8AADF4").pack(side=tk.LEFT, padx=(0, 12))
+        self._btn(act_frame, "🔓  Giải mã", self._do_decrypt, "#A6DA95").pack(side=tk.LEFT, padx=12)
         self._btn(act_frame, "🗑  Xóa", self._clear_enc, "#ED8796").pack(side=tk.LEFT, padx=12)
 
         # Output
@@ -140,11 +140,11 @@ class AESBruteForceApp:
         )
         self.enc_output.pack(fill=tk.BOTH, expand=True)
 
-    # ── Tab 2: Brute-Force ────────────────────────
+    # ── Tab 2: Vét cạn ────────────────────────
 
     def _build_tab_bruteforce(self):
         frame = tk.Frame(self.nb, bg="#24273A")
-        self.nb.add(frame, text="  ⚡ Brute-Force Attack  ")
+        self.nb.add(frame, text="  ⚡ Tấn công vét cạn  ")
 
         # Info
         info_frame = tk.Frame(frame, bg="#363A4F", padx=16, pady=10)
@@ -159,7 +159,7 @@ class AESBruteForceApp:
         cfg_frame = tk.Frame(frame, bg="#24273A")
         cfg_frame.pack(fill=tk.X, padx=20)
 
-        self._label(cfg_frame, "🔐 Ciphertext (hex):").grid(row=0, column=0, sticky='w', pady=8, padx=(0, 10))
+        self._label(cfg_frame, "🔐 Bản mã (hex):").grid(row=0, column=0, sticky='w', pady=8, padx=(0, 10))
         self.bf_cipher_display = scrolledtext.ScrolledText(
             cfg_frame, height=2, width=54,
             font=("Consolas", 10),
@@ -200,13 +200,13 @@ class AESBruteForceApp:
         # Stats
         stat_frame = tk.Frame(frame, bg="#1E2030", padx=16, pady=8)
         stat_frame.pack(fill=tk.X, padx=20, pady=5)
-        self.bf_stat_keys = tk.Label(stat_frame, text="Keys tested: 0", font=("Consolas", 10),
+        self.bf_stat_keys = tk.Label(stat_frame, text="Số khóa đã thử: 0", font=("Consolas", 10),
                                      bg="#1E2030", fg="#A6DA95")
         self.bf_stat_keys.pack(side=tk.LEFT, expand=True, anchor='w')
-        self.bf_stat_kps = tk.Label(stat_frame, text="Keys/s: —", font=("Consolas", 10),
+        self.bf_stat_kps = tk.Label(stat_frame, text="Khóa/giây: —", font=("Consolas", 10),
                                     bg="#1E2030", fg="#8AADF4")
         self.bf_stat_kps.pack(side=tk.LEFT, expand=True, anchor='center')
-        self.bf_stat_time = tk.Label(stat_frame, text="Elapsed: 0.0s", font=("Consolas", 10),
+        self.bf_stat_time = tk.Label(stat_frame, text="Thời gian: 0.0s", font=("Consolas", 10),
                                      bg="#1E2030", fg="#F5A97F")
         self.bf_stat_time.pack(side=tk.LEFT, expand=True, anchor='e')
 
@@ -214,7 +214,7 @@ class AESBruteForceApp:
         act_frame = tk.Frame(frame, bg="#24273A")
         act_frame.pack(fill=tk.X, padx=20, pady=10)
         tk.Checkbutton(
-            act_frame, text="Log chi tiet", variable=self.bf_verbose_log,
+            act_frame, text="Log chi tiết", variable=self.bf_verbose_log,
             bg="#24273A", fg="#CAD3F5", selectcolor="#1E2030",
             activebackground="#24273A", activeforeground="#8AADF4",
             font=("Segoe UI", 10, "bold")
@@ -222,7 +222,7 @@ class AESBruteForceApp:
         
         self.bf_fast_mode = tk.BooleanVar(value=False)
         tk.Checkbutton(
-            act_frame, text="🚀 Fast Mode", variable=self.bf_fast_mode,
+            act_frame, text="🚀 Chế độ nhanh", variable=self.bf_fast_mode,
             bg="#24273A", fg="#A6DA95", selectcolor="#1E2030",
             activebackground="#24273A", activeforeground="#8AADF4",
             font=("Segoe UI", 10, "bold")
@@ -237,7 +237,7 @@ class AESBruteForceApp:
         # Log
         log_frame = tk.Frame(frame, bg="#24273A")
         log_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 16))
-        self._label(log_frame, "📋 Log:").pack(anchor='w', pady=(0, 8))
+        self._label(log_frame, "📋 Nhật ký:").pack(anchor='w', pady=(0, 8))
         self.bf_log = scrolledtext.ScrolledText(
             log_frame, font=("Consolas", 11),
             bg="#1E2030", fg="#CAD3F5", insertbackground="#CAD3F5",
@@ -263,42 +263,42 @@ class AESBruteForceApp:
   CƠ SỞ LÝ THUYẾT: AES VÀ TẤN CÔNG BRUTE-FORCE
 ══════════════════════════════════════════════════════════
 
-1. AES (Advanced Encryption Standard)
+1. AES (Tiêu chuẩn Mã hóa Nâng cao)
 ──────────────────────────────────────
 • Tiêu chuẩn mã hóa đối xứng (FIPS-197, 2001)
-• Block size: 128 bits (16 bytes)
-• Key size chuẩn: 128 / 192 / 256 bits
+• Kích thước khối: 128 bit (16 byte)
+• Kích thước khóa chuẩn: 128 / 192 / 256 bit
 • Số vòng: AES-128→10 vòng, AES-192→12, AES-256→14
-• Triển khai trong demo: Python thuần (From Scratch)
-• Mode sử dụng trong demo: ECB (Electronic Codebook)
+• Triển khai trong demo: Python thuần
+• Chế độ dùng trong demo: ECB (sổ mã điện tử)
 
 2. Khóa ngắn trong demo này
 ──────────────────────────────────────
 Thay vì dùng khóa 128-bit, chúng ta dùng khóa 8-24 bit
 và pad phần còn lại bằng byte 0x00 → vẫn là AES-128
-thực sự, nhưng không gian khóa nhỏ → brute-force được.
+thực sự, nhưng không gian khóa nhỏ → có thể vét cạn.
 
-  Ví dụ (16-bit key = 0xABCD):
-  Key thực   : AB CD
-  Key AES    : AB CD 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-                └─ 2 bytes ─┘└──────────── 14 bytes zeros ─────────────┘
+  Ví dụ (khóa 16-bit = 0xABCD):
+  Phần khóa bí mật : AB CD
+  Khóa AES đầy đủ  : AB CD 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+                     └─ 2 byte ─┘└──────────── 14 byte 0 ─────────────┘
 
-3. Điểm yếu của ECB Mode ⚠️
+3. Điểm yếu của chế độ ECB ⚠️
 ──────────────────────────────────────
-ECB mã hóa mỗi block 16 bytes độc lập, KHÔNG dùng IV.
+ECB mã hóa mỗi khối 16 byte độc lập, KHÔNG dùng IV.
 
-  NGUY HIỂM: Plaintext giống nhau → Ciphertext giống nhau!
+  NGUY HIỂM: Bản rõ giống nhau → bản mã giống nhau!
 
   Ví dụ:
-  Plaintext : [BLOCK A][BLOCK A][BLOCK B]
-  ECB cipher: [ENC(A)] [ENC(A)] [ENC(B)]  ← lộ pattern!
-  CBC cipher: [C1]     [C2]     [C3]      ← C1≠C2 dù A=A
+  Bản rõ       : [KHỐI A][KHỐI A][KHỐI B]
+  Bản mã ECB   : [MÃ(A)] [MÃ(A)] [MÃ(B)]  ← lộ mẫu lặp!
+  Bản mã CBC   : [C1]    [C2]    [C3]     ← C1≠C2 dù A=A
 
-  CBC (Cipher Block Chaining) an toàn hơn vì dùng XOR
-  với ciphertext trước: Ci = E(Pi XOR C(i-1))
+  CBC (liên kết khối mã) an toàn hơn vì dùng XOR
+  với bản mã trước: Ci = E(Pi XOR C(i-1))
   → Cần dùng CBC/GCM trong thực tế, KHÔNG dùng ECB!
 
-4. Tấn công Brute-Force (Vét Cạn)
+4. Tấn công vét cạn
 ──────────────────────────────────────
 Thử tất cả khóa có thể từ 0 đến 2^n - 1:
 
@@ -311,12 +311,12 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
   Heuristic lọc: PKCS#7 padding hợp lệ + ASCII printable
   → Loại bỏ ~99.97% kết quả giải mã sai.
 
-5. Không gian khóa (Keyspace)
+5. Không gian khóa
 ──────────────────────────────────────
   n bits → 2^n khóa cần thử (trung bình: 2^(n-1))
 
   ┌──────────┬──────────────────┬───────────────────┐
-  │ Key bits │ Keyspace         │ Avg Time (~50K/s)  │
+  │ Độ dài   │ Không gian khóa  │ TB thời gian       │
   ├──────────┼──────────────────┼───────────────────┤
   │   8-bit  │              256 │ < 0.01 giây        │
   │  12-bit  │            4,096 │ < 0.1 giây         │
@@ -330,13 +330,13 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
 
 6. Kết luận về An toàn
 ──────────────────────────────────────
-  • Khóa < 40 bits  : KHÔNG AN TOÀN (brute-force được)
+  • Khóa < 40 bits  : KHÔNG AN TOÀN (có thể vét cạn)
   • Khóa 64 bits    : CẦN NHIỀU TÀI NGUYÊN
   • Khóa 128 bits+  : AN TOÀN với máy tính thông thường
-  • Mode ECB        : KHÔNG nên dùng trong thực tế
-  • Mode CBC/GCM    : Khuyến nghị sử dụng
+  • Chế độ ECB      : KHÔNG nên dùng trong thực tế
+  • Chế độ CBC/GCM  : Khuyến nghị sử dụng
 
-  → Luôn dùng AES-128 trở lên + CBC/GCM mode trong thực tế!
+  → Luôn dùng AES-128 trở lên + chế độ CBC/GCM trong thực tế!
 
 7. Công thức ước tính thời gian
 ──────────────────────────────────────
@@ -345,14 +345,14 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
 
   Trong đó:
   • n : độ dài khóa (bits)
-  • R : tốc độ thử khóa (keys/giây)
-  • T : thời gian brute-force (giây)
+  • R : tốc độ thử khóa (khóa/giây)
+  • T : thời gian vét cạn (giây)
 
 ══════════════════════════════════════════════════════════
   TÀI LIỆU THAM KHẢO
 ══════════════════════════════════════════════════════════
 • FIPS-197: https://csrc.nist.gov/publications/detail/fips/197/final
-• Triển khai AES thuần Python (From Scratch, không dùng thư viện)
+• Triển khai AES thuần Python, không dùng thư viện mã hóa
 • Stallings, W. "Cryptography and Network Security" (8th ed.)
 • Paar, C. "Understanding Cryptography"
 ══════════════════════════════════════════════════════════
@@ -374,7 +374,7 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
 
         plaintext = self.enc_plaintext.get().strip()
         if not plaintext:
-            messagebox.showwarning("Cảnh báo", "Vui lòng nhập plaintext!")
+            messagebox.showwarning("Cảnh báo", "Vui lòng nhập bản rõ!")
             return
 
         bits = self.enc_key_bits.get()
@@ -388,29 +388,29 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
             messagebox.showerror("Lỗi mã hóa", str(e))
             return
 
-        # Lưu để brute-force dùng
+        # Lưu để quá trình vét cạn dùng
         self._ciphertext = ciphertext
         self._encrypt_key_int = key_int
         self._encrypt_key_bits = bits
 
-        # Hiển thị trong tab brute-force
+        # Hiển thị trong tab vét cạn
         self._set_bf_ciphertext(bytes_to_hex(ciphertext))
         self.bf_key_bits.set(bits)
 
         # Output
         self.enc_output.delete('1.0', tk.END)
         self.enc_output.insert(tk.END, "╔══ KẾT QUẢ MÃ HÓA ══════════════════════════════════╗\n")
-        self.enc_output.insert(tk.END, f"  Plaintext   : {plaintext}\n")
-        self.enc_output.insert(tk.END, f"  Key bits    : {bits}-bit (keyspace: 2^{bits} = {2**bits:,})\n")
-        self.enc_output.insert(tk.END, f"  Key (int)   : {key_int}\n")
-        self.enc_output.insert(tk.END, f"  Key (hex)   : 0x{key_int:0{bits//4}X}\n")
-        self.enc_output.insert(tk.END, f"  Key (full)  : {bytes_to_hex(key)}\n")
-        self.enc_output.insert(tk.END, f"  Ciphertext  : {bytes_to_hex(ciphertext)}\n")
+        self.enc_output.insert(tk.END, f"  Bản rõ             : {plaintext}\n")
+        self.enc_output.insert(tk.END, f"  Độ dài khóa        : {bits}-bit (không gian khóa: 2^{bits} = {2**bits:,})\n")
+        self.enc_output.insert(tk.END, f"  Khóa (số nguyên)   : {key_int}\n")
+        self.enc_output.insert(tk.END, f"  Khóa (hex)         : 0x{key_int:0{bits//4}X}\n")
+        self.enc_output.insert(tk.END, f"  Khóa AES đầy đủ    : {bytes_to_hex(key)}\n")
+        self.enc_output.insert(tk.END, f"  Bản mã             : {bytes_to_hex(ciphertext)}\n")
         self.enc_output.insert(tk.END, "╚══════════════════════════════════════════════════════╝\n")
         self.enc_output.insert(tk.END, f"\n⚠️  Khóa thực: {key_int} → Brute-force cần tìm đúng số này!\n")
-        self.enc_output.insert(tk.END, "✅ Ciphertext đã được copy sang tab Brute-Force.\n")
+        self.enc_output.insert(tk.END, "✅ Bản mã đã được sao chép sang tab tấn công vét cạn.\n")
 
-        self.status_var.set(f"✅ Đã mã hóa '{plaintext}' với {bits}-bit key (key={key_int})")
+        self.status_var.set(f"✅ Đã mã hóa '{plaintext}' với khóa {bits}-bit (khóa={key_int})")
 
     def _do_decrypt(self):
         """Giải mã bằng key gốc."""
@@ -428,15 +428,15 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
         result = decrypt_aes(self._ciphertext, key)
 
         self.enc_output.insert(tk.END, "\n╔══ GIẢI MÃ VỚI KEY GỐC ═══════════════════════════╗\n")
-        self.enc_output.insert(tk.END, f"  Key (int)   : {self._encrypt_key_int}\n")
-        self.enc_output.insert(tk.END, f"  Plaintext   : {result}\n")
+        self.enc_output.insert(tk.END, f"  Khóa (số nguyên)   : {self._encrypt_key_int}\n")
+        self.enc_output.insert(tk.END, f"  Bản rõ             : {result}\n")
         self.enc_output.insert(tk.END, "╚══════════════════════════════════════════════════════╝\n")
         self.status_var.set(f"✅ Giải mã thành công: {result}")
 
     def _do_brute_force(self):
-        """Bắt đầu brute-force trong thread riêng."""
+        """Bắt đầu vét cạn trong thread riêng."""
         if self._bf_thread and self._bf_thread.is_alive():
-            messagebox.showinfo("Thông báo", "Brute-force đang chạy!")
+            messagebox.showinfo("Thông báo", "Quá trình vét cạn đang chạy!")
             return
 
         try:
@@ -449,19 +449,19 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
         bits = self.bf_key_bits.get()
         ciphertext = self._get_ciphertext_from_input()
         if ciphertext is None:
-            messagebox.showwarning("Cảnh báo", "Vui lòng nhập ciphertext hex hợp lệ!")
+            messagebox.showwarning("Cảnh báo", "Vui lòng nhập bản mã hex hợp lệ!")
             return
 
         self.bf_log.delete('1.0', tk.END)
         self.bf_progress['value'] = 0
         self.bf_pct_label.configure(text="0%")
-        self.bf_stat_keys.configure(text="Keys tested: 0")
-        self.bf_stat_kps.configure(text="Keys/s: —")
-        self.bf_stat_time.configure(text="Elapsed: 0.0s")
+        self.bf_stat_keys.configure(text="Số khóa đã thử: 0")
+        self.bf_stat_kps.configure(text="Khóa/giây: —")
+        self.bf_stat_time.configure(text="Thời gian: 0.0s")
 
         self._log_bf_start_report(bits, ciphertext)
         if self._encrypt_key_int is not None:
-            self._log(f"   Target key demo : {self._encrypt_key_int}")
+            self._log(f"   Khóa demo cần tìm : {self._encrypt_key_int}")
         self._log("=" * 64)
 
         def run():
@@ -495,13 +495,13 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
         self._bf_thread = threading.Thread(target=run, daemon=True)
         self._bf_thread.start()
         self._set_bf_button_state(running=True)
-        self.status_var.set(f"⚡ Đang brute-force {bits}-bit key...")
+        self.status_var.set(f"⚡ Đang vét cạn khóa {bits}-bit...")
 
     def _do_stop(self):
         self._stop_flag.set()
         self._set_bf_button_state(running=False)
         self.status_var.set("⏹ Đã yêu cầu dừng...")
-        self._log("⏹ Người dùng dừng brute-force.")
+        self._log("⏹ Người dùng dừng quá trình vét cạn.")
 
     def _set_bf_button_state(self, running: bool):
         state_start = tk.DISABLED if running else tk.NORMAL
@@ -541,21 +541,21 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
         interval = self._detail_log_interval(bits)
         avg_keys = total // 2
         self._log("=" * 64)
-        self._log("BAT DAU QUA TRINH BRUTE-FORCE AES")
+        self._log("BẮT ĐẦU QUÁ TRÌNH VÉT CẠN AES")
         self._log("=" * 64)
         self._log("")
-        self._log("[STEP 1] DU LIEU DAU VAO")
-        self._log(f"   Ciphertext (hex)    : {ciphertext.hex().upper()}")
-        self._log(f"   Ciphertext (bytes)  : {len(ciphertext)} bytes")
-        self._log(f"   Do dai khoa can tim : {bits} bits")
+        self._log("[BƯỚC 1] DỮ LIỆU ĐẦU VÀO")
+        self._log(f"   Bản mã (hex)        : {ciphertext.hex().upper()}")
+        self._log(f"   Kích thước bản mã   : {len(ciphertext)} byte")
+        self._log(f"   Độ dài khóa cần tìm : {bits} bit")
         self._log("")
-        self._log("[STEP 2] LAP KE HOACH TAN CONG")
-        self._log(f"   Keyspace            : 2^{bits} = {total:,} keys")
-        self._log(f"   Avg keys test       : {avg_keys:,} keys")
-        self._log(f"   Log moi             : {interval:,} keys")
-        self._log("   Kiem tra hop le     : PKCS7 OK + ASCII printable score")
+        self._log("[BƯỚC 2] LẬP KẾ HOẠCH TẤN CÔNG")
+        self._log(f"   Không gian khóa     : 2^{bits} = {total:,} khóa")
+        self._log(f"   Số khóa TB cần thử  : {avg_keys:,} khóa")
+        self._log(f"   Ghi log mỗi         : {interval:,} khóa")
+        self._log("   Điều kiện hợp lệ    : PKCS#7 đúng + điểm ASCII in được")
         self._log("")
-        self._log("[STEP 3] BAT DAU QUET KEYSPACE")
+        self._log("[BƯỚC 3] BẮT ĐẦU QUÉT KHÔNG GIAN KHÓA")
 
     def _log_bf_detail(self, event):
         event_type = event.get('event')
@@ -564,33 +564,35 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
         percent = float(event.get('percent', 0.0) or 0.0)
 
         if event_type == 'start':
-            self._log(f"   Mode                : {event.get('mode')}")
-            self._log(f"   Workers             : {event.get('workers')}")
-            self._log(f"   Score threshold     : {event.get('score_threshold', 'n/a')}")
+            mode = event.get('mode')
+            mode_label = "đa tiến trình" if mode == "multiprocessing" else "tuần tự"
+            self._log(f"   Chế độ              : {mode_label}")
+            self._log(f"   Số tiến trình       : {event.get('workers')}")
+            self._log(f"   Ngưỡng điểm         : {event.get('score_threshold', 'không có')}")
         elif event_type == 'trying':
             self._log(
-                f"   Try {current:>8,}/{total:,} ({percent:>6.2f}%)  "
-                f"key={event.get('key_int')}  hex=0x{event.get('key_hex')}"
+                f"   Thử {current:>8,}/{total:,} ({percent:>6.2f}%)  "
+                f"khóa={event.get('key_int')}  hex=0x{event.get('key_hex')}"
             )
         elif event_type == 'padding_valid':
             score = float(event.get('plaintext_score', 0.0) or 0.0)
             if score < 0.85:
                 return
             self._log(
-                f"   Candidate OK        : key={event.get('key_int')} | "
-                f"score={score:.2f} | text={event.get('plaintext_preview')!r}"
+                f"   Ứng viên hợp lệ     : khóa={event.get('key_int')} | "
+                f"điểm={score:.2f} | bản rõ thử={event.get('plaintext_preview')!r}"
             )
         elif event_type == 'chunk_done':
             self._log(
-                f"[CHUNK] tested={event.get('keys_tested'):,}/{total:,} "
-                f"({percent:.2f}%) | workers={event.get('workers')}"
+                f"[CỤM] đã thử={event.get('keys_tested'):,}/{total:,} "
+                f"({percent:.2f}%) | tiến trình={event.get('workers')}"
             )
         elif event_type == 'found':
-            self._log("   Candidate accepted  : PKCS7 OK + ASCII printable OK")
+            self._log("   Ứng viên được nhận  : PKCS#7 đúng + ASCII in được")
         elif event_type == 'stopped':
-            self._log(f"[DETAIL] Stopped after {current:,}/{total:,} keys ({percent:.2f}%).")
+            self._log(f"[CHI TIẾT] Đã dừng sau {current:,}/{total:,} khóa ({percent:.2f}%).")
         elif event_type == 'exhausted':
-            self._log(f"[DETAIL] Exhausted keyspace: {current:,}/{total:,} keys.")
+            self._log(f"[CHI TIẾT] Đã quét hết không gian khóa: {current:,}/{total:,} khóa.")
 
     def _log_bf_success_report(self, result, bits: int) -> None:
         key_int = int(result['key_int'])
@@ -603,47 +605,47 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
         kps = float(result['keys_per_second'])
         avg_theory = (total / 2) / kps if kps > 0 else 0.0
         ratio = (elapsed / avg_theory * 100) if avg_theory > 0 else 0.0
-        verdict = "Tim som hon trung binh" if elapsed <= avg_theory else "Cham hon trung binh"
+        verdict = "Tìm sớm hơn trung bình" if elapsed <= avg_theory else "Chậm hơn trung bình"
         ciphertext = self._get_ciphertext_from_input()
         ciphertext_hex = ciphertext.hex().upper() if ciphertext is not None else ""
 
-        self._log("TIM THAY KHOA!")
+        self._log("TÌM THẤY KHÓA!")
         self._log("=" * 64)
         self._log("")
-        self._log("[RESULT] THONG TIN KHOA")
-        self._log(f"   Key (decimal)       : {key_int}")
-        self._log(f"   Key (hex)           : 0x{result['key_hex']}")
-        self._log(f"   Key (binary)        : {key_binary}")
-        self._log(f"   Key (bytes)         : {key_bytes.hex().upper()}")
-        self._log(f"   Key AES-128         : {result['key_full_hex']}")
+        self._log("[KẾT QUẢ] THÔNG TIN KHÓA")
+        self._log(f"   Khóa (số nguyên)    : {key_int}")
+        self._log(f"   Khóa (hex)          : 0x{result['key_hex']}")
+        self._log(f"   Khóa (nhị phân)     : {key_binary}")
+        self._log(f"   Khóa (byte)         : {key_bytes.hex().upper()}")
+        self._log(f"   Khóa AES-128        : {result['key_full_hex']}")
         self._log("")
-        self._log("[RESULT] GIAI MA THANH CONG")
-        self._log(f"   Ciphertext          : {ciphertext_hex}")
-        self._log(f"   Plaintext           : {result['plaintext']}")
-        self._log(f"   Validation          : PKCS7 OK + ASCII printable OK")
-        self._log(f"   Plaintext score     : {result.get('plaintext_score', 0.0):.2f}")
+        self._log("[KẾT QUẢ] GIẢI MÃ THÀNH CÔNG")
+        self._log(f"   Bản mã              : {ciphertext_hex}")
+        self._log(f"   Bản rõ              : {result['plaintext']}")
+        self._log("   Kiểm tra hợp lệ     : PKCS#7 đúng + ASCII in được")
+        self._log(f"   Điểm bản rõ         : {result.get('plaintext_score', 0.0):.2f}")
         self._log("")
-        self._log("[RESULT] THONG KE HIEU NANG")
-        self._log(f"   Thoi gian           : {elapsed:.6f} giay")
-        self._log(f"   Keys tested         : {keys_tested:,}")
-        self._log(f"   Total keyspace      : {total:,}")
-        self._log(f"   % da search         : {result['percent_searched']:.2f}%")
-        self._log(f"   Toc do TB           : {kps:,.0f} keys/giay")
+        self._log("[KẾT QUẢ] THỐNG KÊ HIỆU NĂNG")
+        self._log(f"   Thời gian           : {elapsed:.6f} giây")
+        self._log(f"   Số khóa đã thử      : {keys_tested:,}")
+        self._log(f"   Tổng không gian khóa: {total:,}")
+        self._log(f"   % đã quét           : {result['percent_searched']:.2f}%")
+        self._log(f"   Tốc độ TB           : {kps:,.0f} khóa/giây")
         self._log("")
-        self._log("[ANALYSIS] SO SANH LY THUYET")
-        self._log(f"   Avg ly thuyet       : {avg_theory:.6f} giay")
-        self._log(f"   Thoi gian thuc      : {elapsed:.6f} giay")
-        self._log(f"   Ti le               : {ratio:.1f}%")
-        self._log(f"   Nhan xet            : {verdict}")
+        self._log("[PHÂN TÍCH] SO SÁNH LÝ THUYẾT")
+        self._log(f"   TB lý thuyết        : {avg_theory:.6f} giây")
+        self._log(f"   Thời gian thực      : {elapsed:.6f} giây")
+        self._log(f"   Tỉ lệ               : {ratio:.1f}%")
+        self._log(f"   Nhận xét            : {verdict}")
         self._log("")
         self._log("=" * 64)
 
     def _update_bf_stats(self, current, total, pct, kps, elapsed):
         self.bf_progress['value'] = pct
         self.bf_pct_label.configure(text=f"{pct:.1f}%")
-        self.bf_stat_keys.configure(text=f"Keys tested: {current:,}")
-        self.bf_stat_kps.configure(text=f"Keys/s: {kps:,.0f}")
-        self.bf_stat_time.configure(text=f"Elapsed: {elapsed:.1f}s")
+        self.bf_stat_keys.configure(text=f"Số khóa đã thử: {current:,}")
+        self.bf_stat_kps.configure(text=f"Khóa/giây: {kps:,.0f}")
+        self.bf_stat_time.configure(text=f"Thời gian: {elapsed:.1f}s")
 
     def _on_bf_done(self, result, bits):
         self.bf_progress['value'] = 100 if result['found'] else self.bf_progress['value']
@@ -657,17 +659,17 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
         self._log("=" * 64)
         if result['found']:
             self._log_bf_success_report(result, bits)
-            self.status_var.set(f"✅ Tìm thấy! Key={result['key_int']}, plaintext='{result['plaintext']}'")
+            self.status_var.set(f"✅ Tìm thấy! Khóa={result['key_int']}, bản rõ='{result['plaintext']}'")
         else:
-            self._log("KHONG TIM THAY KHOA")
+            self._log("KHÔNG TÌM THẤY KHÓA")
             self._log("=" * 64)
             self._log("")
-            self._log("[RESULT] THONG KE")
-            self._log(f"   Keys tested         : {result['keys_tested']:,}")
-            self._log(f"   Total keyspace      : {result['total_keyspace']:,}")
-            self._log(f"   % da search         : {result['percent_searched']:.2f}%")
-            self._log(f"   Thoi gian           : {result['elapsed_seconds']:.6f} giay")
-            self._log(f"   Toc do TB           : {result['keys_per_second']:,.0f} keys/giay")
+            self._log("[KẾT QUẢ] THỐNG KÊ")
+            self._log(f"   Số khóa đã thử      : {result['keys_tested']:,}")
+            self._log(f"   Tổng không gian khóa: {result['total_keyspace']:,}")
+            self._log(f"   % đã quét           : {result['percent_searched']:.2f}%")
+            self._log(f"   Thời gian           : {result['elapsed_seconds']:.6f} giây")
+            self._log(f"   Tốc độ TB           : {result['keys_per_second']:,.0f} khóa/giây")
             self._log("")
             self._log("=" * 64)
             self.status_var.set("❌ Brute-force kết thúc không thành công")
@@ -725,5 +727,5 @@ Thử tất cả khóa có thể từ 0 đến 2^n - 1:
 
         max_val = (1 << key_bits) - 1
         if value < 0 or value > max_val:
-            raise ValueError(f"Key phai nam trong [0, 2^{key_bits} - 1].")
+            raise ValueError(f"Khóa phải nằm trong [0, 2^{key_bits} - 1].")
         return value

@@ -288,17 +288,17 @@ def hex_to_bytes(hex_str: str) -> bytes:
     return bytes.fromhex(hex_str.strip())
 
 if __name__ == "__main__":
-    print("=== Test AES Engine (Pure Python From Scratch) ===")
+    print("=== KIỂM TRA BỘ MÃ HÓA AES (Python thuần) ===")
     test_text = "HELLO WORLD"
 
     for bits in [16, 24, 32]:
         ciphertext, key, key_int = encrypt_aes(test_text, bits)
         decrypted = decrypt_aes(ciphertext, key)
 
-        print(f"\n[{bits}-bit key]")
-        print(f"  Plaintext : {test_text}")
-        print(f"  Key (hex) : {bytes_to_hex(key)}")
-        print(f"  Key value : {key_int} (0x{key_int:0{bits//4}X})")
-        print(f"  Ciphertext: {bytes_to_hex(ciphertext)}")
-        print(f"  Decrypted : {decrypted}")
-        print(f"  Match     : {test_text == decrypted}")
+        print(f"\n[Khóa {bits}-bit]")
+        print(f"  Bản rõ          : {test_text}")
+        print(f"  Khóa (hex)      : {bytes_to_hex(key)}")
+        print(f"  Giá trị khóa    : {key_int} (0x{key_int:0{bits//4}X})")
+        print(f"  Bản mã          : {bytes_to_hex(ciphertext)}")
+        print(f"  Sau giải mã     : {decrypted}")
+        print(f"  Khớp bản rõ gốc : {test_text == decrypted}")
