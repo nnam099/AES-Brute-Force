@@ -50,7 +50,8 @@ AES-Brute-Force/
 
 ### Cài thư viện
 ```bash
-pip install -r requirements.txt
+git clone https://github.com/nnam099/aes-bruteforce.git
+cd aes-bruteforce
 ```
 
 `requirements.txt` bao gồm:
