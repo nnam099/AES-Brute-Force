@@ -1,6 +1,6 @@
 """
-brute_force.py - AES Brute-Force Attack Module
-Tấn công vét cạn tuần tự (sequential brute-force) lên AES khóa ngắn.
+brute_force.py - Module tấn công vét cạn AES
+Tấn công vét cạn tuần tự lên AES khóa ngắn.
 """
 
 import time
@@ -8,7 +8,7 @@ from multiprocessing import Pool, cpu_count
 from typing import Callable, Dict, Optional, Tuple
 from aes_engine import PureAES, unpad, SUPPORTED_KEY_BITS
 
-# PyCryptodome (tuỳ chọn) — dùng cho Fast Mode
+# PyCryptodome (tuỳ chọn) — dùng cho chế độ nhanh
 try:
     from Crypto.Cipher import AES as _CryptoAES
     _PYCRYPTODOME_AVAILABLE = True
@@ -122,7 +122,7 @@ def brute_force_aes(
         fast_mode: Sử dụng thư viện PyCryptodome để tăng tốc
 
     Returns:
-        dict: Kết quả brute-force
+        dict: Kết quả vét cạn
     """
     validate_key_bits(key_bits)
 
@@ -342,7 +342,7 @@ def brute_force_aes(
 
 def estimate_time(key_bits: int, keys_per_second: float = None) -> Dict[str, object]:
     """
-    Ước tính thời gian brute-force dựa trên lý thuyết.
+    Ước tính thời gian vét cạn dựa trên lý thuyết.
 
     Args:
         key_bits: Độ dài khóa (bits)
@@ -387,32 +387,32 @@ def estimate_time(key_bits: int, keys_per_second: float = None) -> Dict[str, obj
 if __name__ == "__main__":
     from aes_engine import encrypt_aes, bytes_to_hex
 
-    print("=== Test Brute-Force ===")
+    print("=== KIỂM TRA VÉT CẠN ===")
     plaintext = "SECRET"
     key_bits = 16
 
-    print(f"Plaintext: {plaintext}")
-    print(f"Key length: {key_bits} bits (keyspace: 2^{key_bits} = {2**key_bits:,})")
+    print(f"Bản rõ: {plaintext}")
+    print(f"Độ dài khóa: {key_bits} bit (không gian khóa: 2^{key_bits} = {2**key_bits:,})")
 
     ciphertext, key, key_int = encrypt_aes(plaintext, key_bits)
-    print(f"Key value: {key_int} (0x{key_int:04X})")
-    print(f"Ciphertext: {bytes_to_hex(ciphertext)}")
-    print(f"\nBắt đầu brute-force...")
+    print(f"Giá trị khóa: {key_int} (0x{key_int:04X})")
+    print(f"Bản mã: {bytes_to_hex(ciphertext)}")
+    print(f"\nBắt đầu vét cạn...")
 
     def progress_cb(current, total, elapsed):
         pct = current / total * 100
-        print(f"  [{pct:.1f}%] {current:,}/{total:,} keys | {elapsed:.1f}s")
+        print(f"  [{pct:.1f}%] {current:,}/{total:,} khóa | {elapsed:.1f}s")
 
     result = brute_force_aes(ciphertext, key_bits, callback=progress_cb)
 
     print(f"\n=== KẾT QUẢ ===")
     if result['found']:
         print(f"✅ Tìm thấy!")
-        print(f"   Key (int)  : {result['key_int']}")
-        print(f"   Key (hex)  : 0x{result['key_hex']}")
-        print(f"   Plaintext  : {result['plaintext']}")
-        print(f"   Thời gian  : {result['elapsed_seconds']:.2f}s")
-        print(f"   Keys/giây  : {result['keys_per_second']:,.0f}")
+        print(f"   Khóa (số nguyên) : {result['key_int']}")
+        print(f"   Khóa (hex)       : 0x{result['key_hex']}")
+        print(f"   Bản rõ           : {result['plaintext']}")
+        print(f"   Thời gian        : {result['elapsed_seconds']:.2f}s")
+        print(f"   Khóa/giây        : {result['keys_per_second']:,.0f}")
     else:
         print("❌ Không tìm thấy!")
 
@@ -420,4 +420,4 @@ if __name__ == "__main__":
     kps = result['keys_per_second']
     for bits in [16, 20, 24, 32, 64, 128]:
         est = estimate_time(bits, kps)
-        print(f"  {bits:3d}-bit: {est['keyspace_formatted']:30s} | Avg: {est['avg_time_formatted']}")
+        print(f"  {bits:3d}-bit: {est['keyspace_formatted']:30s} | Trung bình: {est['avg_time_formatted']}")

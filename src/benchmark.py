@@ -1,5 +1,5 @@
 """
-benchmark.py - Đo lường và phân tích hiệu năng brute-force.
+benchmark.py - Đo lường và phân tích hiệu năng vét cạn.
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ RESULTS_DIR = Path(__file__).resolve().parent.parent / "results"
 
 
 def configure_console() -> None:
-    """Use UTF-8 console output when supported, especially on Windows."""
+    """Chuẩn hóa output console sang UTF-8 khi môi trường hỗ trợ."""
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
             try:
@@ -34,12 +34,12 @@ def configure_console() -> None:
 
 
 def parse_int(value: str) -> int:
-    """Parse decimal or 0x-prefixed integers for CLI options."""
+    """Đọc số nguyên dạng thập phân hoặc dạng 0x cho tùy chọn CLI."""
     try:
         return int(value, 0)
     except ValueError as exc:
         raise argparse.ArgumentTypeError(
-            f"Invalid integer value: {value!r}"
+            f"Giá trị số nguyên không hợp lệ: {value!r}"
         ) from exc
 
 
@@ -50,18 +50,18 @@ def benchmark_key_length(
     workers: int = 1,
     key_int: Optional[int] = None,
 ) -> dict:
-    """Đo thời gian brute-force cho một độ dài khóa cụ thể."""
+    """Đo thời gian vét cạn cho một độ dài khóa cụ thể."""
     if verbose:
-        print(f"\n[Benchmark {key_bits}-bit]")
-        print(f"  Keyspace: 2^{key_bits} = {2**key_bits:,} keys")
-        print(f"  Encrypting '{test_text}'...")
+        print(f"\n[Đo hiệu năng khóa {key_bits}-bit]")
+        print(f"  Không gian khóa: 2^{key_bits} = {2**key_bits:,} khóa")
+        print(f"  Đang mã hóa '{test_text}'...")
 
     ciphertext, key, actual_key_int = encrypt_aes(test_text, key_bits, key_int=key_int)
 
     if verbose:
-        label = "Fixed key value" if key_int is not None else "Key value"
+        label = "Giá trị khóa cố định" if key_int is not None else "Giá trị khóa"
         print(f"  {label}: {actual_key_int} (0x{actual_key_int:0{key_bits//4}X})")
-        print("  Running brute-force...")
+        print("  Đang chạy vét cạn...")
 
     result = brute_force_aes(ciphertext, key_bits, workers=workers)
 
@@ -81,11 +81,11 @@ def benchmark_key_length(
 
     if verbose:
         if result['found']:
-            print(f"  ✅ Found: key={result['key_int']}, text='{result['plaintext']}'")
+            print(f"  ✅ Tìm thấy: khóa={result['key_int']}, bản rõ='{result['plaintext']}'")
         else:
-            print("  ❌ Not found (stopped early or exhausted)")
-        print(f"  Time    : {result['elapsed_seconds']:.3f}s")
-        print(f"  Keys/s  : {result['keys_per_second']:,.0f}")
+            print("  ❌ Không tìm thấy (đã dừng sớm hoặc quét hết)")
+        print(f"  Thời gian : {result['elapsed_seconds']:.3f}s")
+        print(f"  Khóa/giây : {result['keys_per_second']:,.0f}")
 
     return benchmark_result
 
@@ -101,12 +101,12 @@ def run_all_benchmarks(
         key_bits_list = DEFAULT_KEY_BITS
 
     print("=" * 55)
-    print("  BENCHMARK AES BRUTE-FORCE")
+    print("  ĐO HIỆU NĂNG VÉT CẠN AES")
     print("=" * 55)
-    print(f"  Test text: '{test_text}'")
-    print(f"  Key lengths: {key_bits_list} bits")
+    print(f"  Bản rõ kiểm thử: '{test_text}'")
+    print(f"  Độ dài khóa: {key_bits_list} bit")
     if key_int is not None:
-        print(f"  Fixed key: {key_int} (0x{key_int:X})")
+        print(f"  Khóa cố định: {key_int} (0x{key_int:X})")
 
     results = []
     for bits in key_bits_list:
@@ -115,9 +115,9 @@ def run_all_benchmarks(
         results.append(benchmark_key_length(bits, test_text, workers=workers, key_int=key_int))
 
     print("\n" + "=" * 55)
-    print("  SUMMARY TABLE")
+    print("  BẢNG TÓM TẮT")
     print("=" * 55)
-    print(f"  {'Bits':>5} | {'Keyspace':>15} | {'Time':>10} | {'Keys/s':>12} | Found")
+    print(f"  {'Bit':>5} | {'Không gian khóa':>15} | {'Thời gian':>10} | {'Khóa/giây':>12} | Kết quả")
     print("  " + "-" * 53)
     for r in results:
         print(
@@ -147,7 +147,7 @@ def plot_results(results: List[dict], save_path: str = None) -> str:
     theoretical = [base_time * (2 ** (b - base_bits)) for b in all_bits]
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-    fig.suptitle('AES Brute-Force: Phân tích Thời gian theo Độ dài Khóa', fontsize=14, fontweight='bold')
+    fig.suptitle('Vét cạn AES: Phân tích thời gian theo độ dài khóa', fontsize=14, fontweight='bold')
 
     ax1 = axes[0]
     ax1.plot(bits, times, 'bo-', linewidth=2, markersize=8, label='Thực nghiệm', zorder=5)
@@ -173,7 +173,7 @@ def plot_results(results: List[dict], save_path: str = None) -> str:
     ax2.set_xscale('log')
     ax2.set_xlabel('Thời gian trung bình (giây, log scale)', fontsize=12)
     ax2.set_ylabel('Độ dài khóa (bits)', fontsize=12)
-    ax2.set_title('Ước tính thời gian brute-force', fontsize=12)
+    ax2.set_title('Ước tính thời gian vét cạn', fontsize=12)
     ax2.set_yticks(extended_bits)
     ax2.grid(True, axis='x', alpha=0.3)
 
@@ -206,7 +206,7 @@ def save_results_json(results: List[dict], path: str = None) -> str:
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Benchmark AES brute-force theo nhiều độ dài khóa.",
+        description="Đo hiệu năng vét cạn AES theo nhiều độ dài khóa.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -215,11 +215,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         type=int,
         default=DEFAULT_KEY_BITS,
         choices=SUPPORTED_KEY_BITS,
-        help='Danh sách độ dài khóa để benchmark.',
+        help='Danh sách độ dài khóa để đo hiệu năng.',
     )
-    parser.add_argument('--text', default='SECRET', help='Plaintext dùng cho benchmark.')
-    parser.add_argument('--workers', type=int, default=1, help='So luong process cho brute-force.')
-    parser.add_argument('--key-int', type=parse_int, default=None, help='Fixed key value for reproducible benchmark runs; accepts decimal or 0x...')
+    parser.add_argument('--text', default='SECRET', help='Bản rõ dùng để đo hiệu năng.')
+    parser.add_argument('--workers', type=int, default=1, help='Số tiến trình dùng cho vét cạn.')
+    parser.add_argument('--key-int', type=parse_int, default=None, help='Giá trị khóa cố định để chạy tái lập; chấp nhận số thập phân hoặc dạng 0x...')
     parser.add_argument('--output', default=str(RESULTS_DIR / 'benchmark_chart.png'), help='Đường dẫn lưu biểu đồ.')
     parser.add_argument('--json', default=str(RESULTS_DIR / 'benchmark_data.json'), help='Đường dẫn lưu dữ liệu JSON.')
     parser.add_argument('--no-plot', action='store_true', help='Không vẽ biểu đồ.')
