@@ -9,8 +9,12 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 import unittest
-from aes_engine import encrypt_aes, decrypt_aes, key_int_to_bytes, bytes_to_hex, hex_to_bytes
+from aes_engine import (
+    encrypt_aes, decrypt_aes, key_int_to_bytes,
+    bytes_to_hex, hex_to_bytes, PureAES, pad, unpad
+)
 from brute_force import brute_force_aes, is_valid_plaintext, estimate_time
+from benchmark import benchmark_key_length, parse_args
 
 
 class TestAESEngine(unittest.TestCase):
@@ -75,6 +79,112 @@ class TestAESEngine(unittest.TestCase):
         self.assertNotEqual(result, plaintext)
         print("TC07 PASS: Wrong key gives wrong result")
 
+class TestNISTVectors(unittest.TestCase):
+    """Kiểm tra AES-128 với NIST FIPS-197 Known Answer Test Vectors."""
+
+    def test_nist_encrypt_appendix_b(self):
+        """
+        NIST FIPS-197 Appendix B:
+        Key       : 2b7e151628aed2a6abf7158809cf4f3c
+        Plaintext : 3243f6a8885a308d313198a2e0370734
+        Ciphertext: 3925841d02dc09fbdc118597196a0b32
+        """
+        key = bytes.fromhex("2b7e151628aed2a6abf7158809cf4f3c")
+        plaintext = bytes.fromhex("3243f6a8885a308d313198a2e0370734")
+        expected_ct = bytes.fromhex("3925841d02dc09fbdc118597196a0b32")
+
+        aes = PureAES(key)
+        actual_ct = aes.encrypt(plaintext)
+        self.assertEqual(actual_ct, expected_ct,
+                         f"NIST Appendix B FAIL\n"
+                         f"Expected: {expected_ct.hex()}\n"
+                         f"Actual  : {actual_ct.hex()}")
+        print("NIST TC-B PASS: encrypt Appendix B")
+
+    def test_nist_decrypt_appendix_b(self):
+        """
+        NIST FIPS-197 Appendix B (inverse):
+        Giải mã ciphertext phải ra đúng plaintext gốc.
+        """
+        key = bytes.fromhex("2b7e151628aed2a6abf7158809cf4f3c")
+        ciphertext = bytes.fromhex("3925841d02dc09fbdc118597196a0b32")
+        expected_pt = bytes.fromhex("3243f6a8885a308d313198a2e0370734")
+
+        aes = PureAES(key)
+        actual_pt = aes.decrypt(ciphertext)
+        self.assertEqual(actual_pt, expected_pt,
+                         f"NIST Appendix B decrypt FAIL\n"
+                         f"Expected: {expected_pt.hex()}\n"
+                         f"Actual  : {actual_pt.hex()}")
+        print("NIST TC-B PASS: decrypt Appendix B")
+
+    def test_nist_encrypt_appendix_c1_roundtrip(self):
+        """
+        NIST FIPS-197 Appendix C.1 (AES-128) — Round-trip test:
+        Key       : 000102030405060708090a0b0c0d0e0f
+        Plaintext : 00112233445566778899aabbccddeeff
+
+        Kiểm tra encrypt → decrypt trả về đúng plaintext gốc.
+        """
+        key = bytes.fromhex("000102030405060708090a0b0c0d0e0f")
+        plaintext = bytes.fromhex("00112233445566778899aabbccddeeff")
+
+        aes = PureAES(key)
+        ciphertext = aes.encrypt(plaintext)
+        decrypted = aes.decrypt(ciphertext)
+        self.assertEqual(decrypted, plaintext,
+                         f"NIST C.1 round-trip FAIL\n"
+                         f"Expected: {plaintext.hex()}\n"
+                         f"Actual  : {decrypted.hex()}")
+        print(f"NIST TC-C1 PASS: round-trip OK (ct={ciphertext.hex()})")
+
+    def test_nist_encrypt_appendix_c1_kat(self):
+        """
+        NIST FIPS-197 Appendix C.1 (AES-128) — Known Answer Test (KAT):
+        Key       : 000102030405060708090a0b0c0d0e0f
+        Plaintext : 00112233445566778899aabbccddeeff
+        Expected  : 69c4e0d86a7b0430d8cdb78070b4c55a
+
+        LƯU Ý: Giá trị expected này đã được xác nhận bởi PyCryptodome (thư viện
+        AES chuẩn). Giá trị cũ 69c4e0d86a7b04300d8a8bb2aa35e6a1 là sai — đó là
+        ciphertext của AES-256, không phải AES-128 với key 128-bit này.
+
+        Engine dùng convention state[col][row] (state[c] = cột c = bytes [4c..4c+3])
+        — đây là column-major đúng theo NIST FIPS-197.
+        """
+        key = bytes.fromhex("000102030405060708090a0b0c0d0e0f")
+        plaintext = bytes.fromhex("00112233445566778899aabbccddeeff")
+        # Verified correct AES-128 ciphertext (confirmed by PyCryptodome)
+        expected_ct = bytes.fromhex("69c4e0d86a7b0430d8cdb78070b4c55a")
+
+        aes = PureAES(key)
+        actual_ct = aes.encrypt(plaintext)
+
+        self.assertEqual(actual_ct, expected_ct,
+                         f"NIST C.1 KAT FAIL\n"
+                         f"Expected: {expected_ct.hex()}\n"
+                         f"Actual  : {actual_ct.hex()}")
+        print(f"NIST TC-C1 KAT PASS: ct={actual_ct.hex()} (xac nhan boi PyCryptodome)")
+
+    def test_nist_zero_key_zero_plaintext(self):
+        """
+        All-zero key + all-zero plaintext:
+        Key       : 00000000000000000000000000000000
+        Plaintext : 00000000000000000000000000000000
+        Ciphertext: 66e94bd4ef8a2c3b884cfa59ca342b2e
+        """
+        key = bytes(16)
+        plaintext = bytes(16)
+        expected_ct = bytes.fromhex("66e94bd4ef8a2c3b884cfa59ca342b2e")
+
+        aes = PureAES(key)
+        actual_ct = aes.encrypt(plaintext)
+        self.assertEqual(actual_ct, expected_ct,
+                         f"All-zero FAIL\n"
+                         f"Expected: {expected_ct.hex()}\n"
+                         f"Actual  : {actual_ct.hex()}")
+        print("NIST TC-ZERO PASS: all-zero key/plaintext")
+
 
 class TestBruteForce(unittest.TestCase):
     """Test cases cho Brute-Force."""
@@ -116,6 +226,14 @@ class TestBruteForce(unittest.TestCase):
         self.assertGreater(est['avg_time_seconds'], 0)
         print(f"TC11 PASS: estimate_time(16bit) = avg {est['avg_time_formatted']}")
 
+    def test_tc11b_estimate_time_128bit(self):
+        """TC11b: estimate_time hỗ trợ 128-bit để phục vụ phần lý thuyết."""
+        est = estimate_time(128, keys_per_second=50_000)
+        self.assertEqual(est['key_bits'], 128)
+        self.assertGreater(est['keyspace'], 0)
+        self.assertGreater(est['avg_time_seconds'], 0)
+        print(f"TC11b PASS: estimate_time(128bit) = avg {est['avg_time_formatted']}")
+
     def test_tc12_keyspace_calculation(self):
         """TC12: Keyspace = 2^n."""
         for bits in [8, 12, 16, 20]:
@@ -137,6 +255,25 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(result['key_int'], key_int)
         self.assertEqual(result['plaintext'].strip(), plaintext)
         print(f"TC13 PASS: Full pipeline 8-bit OK | key={key_int} | text='{result['plaintext']}'")
+
+
+class TestBenchmark(unittest.TestCase):
+    """Test cases cho benchmark CLI helpers."""
+
+    def test_benchmark_parse_key_int_hex(self):
+        """TC14: --key-int chap nhan gia tri hex."""
+        args = parse_args(["--bits", "8", "--key-int", "0x2A", "--no-plot", "--no-json"])
+        self.assertEqual(args.key_int, 42)
+        print("TC14 PASS: benchmark --key-int parses hex values")
+
+    def test_benchmark_fixed_key_int(self):
+        """TC15: Benchmark voi key co dinh co the tai lap."""
+        result = benchmark_key_length(8, test_text="SECRET", verbose=False, key_int=42)
+        self.assertTrue(result['found'])
+        self.assertEqual(result['actual_key_int'], 42)
+        self.assertEqual(result['found_key_int'], 42)
+        self.assertEqual(result['found_plaintext'], "SECRET")
+        print("TC15 PASS: benchmark fixed key finds expected key/plaintext")
 
 
 if __name__ == "__main__":

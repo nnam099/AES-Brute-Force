@@ -1,99 +1,329 @@
 """
 brute_force.py - AES Brute-Force Attack Module
-Tấn công vét cạn tuần tự (sequential brute-force) lên AES khóa ngắn
+Tấn công vét cạn tuần tự (sequential brute-force) lên AES khóa ngắn.
 """
 
 import time
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import unpad
+from multiprocessing import Pool, cpu_count
+from typing import Callable, Dict, Optional, Tuple
+from aes_engine import PureAES, unpad, SUPPORTED_KEY_BITS
+
+# PyCryptodome (tuỳ chọn) — dùng cho Fast Mode
+try:
+    from Crypto.Cipher import AES as _CryptoAES
+    _PYCRYPTODOME_AVAILABLE = True
+except ImportError:
+    _CryptoAES = None  # type: ignore
+    _PYCRYPTODOME_AVAILABLE = False
+
+CallbackType = Callable[[int, int, float], None]
+DetailCallbackType = Callable[[Dict[str, object]], None]
+
+
+def validate_key_bits(bits: int) -> None:
+    """Kiểm tra xem độ dài khóa có nằm trong danh sách hỗ trợ."""
+    if bits not in SUPPORTED_KEY_BITS:
+        raise ValueError(
+            f"Độ dài khóa không hợp lệ: {bits}. Hỗ trợ: {SUPPORTED_KEY_BITS}"
+        )
 
 
 def is_valid_plaintext(data: bytes) -> bool:
     """
-    Kiểm tra xem bytes có phải là plaintext ASCII hợp lệ không.
-    Chỉ check 4 bytes đầu để tránh đụng vùng padding.
-
-    Returns:
-        bool: True nếu 4 bytes đầu đều là ký tự ASCII in được
+    Kiểm tra xem bytes (đã bỏ padding) có phải là plaintext ASCII hợp lệ.
+    Chấp nhận ký tự printable ASCII (0x20-0x7E) và whitespace tab/newline.
     """
-    check_len = min(len(data), 4)
-    if check_len == 0:
+    if len(data) == 0:
         return False
-    return all(32 <= b <= 126 for b in data[:check_len])
+    return all(32 <= b <= 126 or b in (9, 10, 13) for b in data)
 
 
-def brute_force_aes(
-    ciphertext: bytes,
-    key_bits: int,
-    callback=None,
-    stop_flag=None
-) -> dict:
+def score_plaintext(data: bytes) -> float:
     """
-    Brute-force tuần tự đơn giản: thử tất cả khóa từ 0 đến 2^key_bits - 1.
-
-    Args:
-        ciphertext: Dữ liệu đã mã hóa
-        key_bits: Độ dài khóa cần tìm (bits)
-        callback: Hàm callback(current, total, elapsed) để cập nhật tiến trình
-        stop_flag: Object có thuộc tính .is_set() để dừng brute-force
-
-    Returns:
-        dict: kết quả brute-force
+    Tinh diem plaintext theo ti le ky tu ASCII printable.
+    Tra ve gia tri tu 0.0 den 1.0.
     """
-    max_keys = 2 ** key_bits
-    key_bytes_len = (key_bits + 7) // 8  # ceil: số bytes cần cho key
-    start_time = time.time()
-    keys_tested = 0
+    if len(data) == 0:
+        return 0.0
+    printable = sum(1 for b in data if 32 <= b <= 126 or b in (9, 10, 13))
+    return printable / len(data)
 
-    # Tần suất gọi callback (khoảng 100 lần trong toàn bộ keyspace)
-    UPDATE_INTERVAL = max(1, max_keys // 100)
 
-    for i in range(max_keys):
-        # Dừng sớm nếu có tín hiệu
-        if stop_flag is not None and stop_flag.is_set():
-            break
+def _bruteforce_worker(args: Tuple[int, int, int, bytes, float, bool]) -> Dict[str, object]:
+    """
+    Worker quet mot doan keyspace [start, end).
+    """
+    start, end, key_bits, ciphertext, score_threshold, fast_mode = args
+    key_bytes_len = (key_bits + 7) // 8
 
-        # Tạo key: phần thực (key_bytes_len bytes) + padding zeros → 16 bytes
+    for i in range(start, end):
         key_part = i.to_bytes(key_bytes_len, byteorder='big')
         key = key_part.ljust(16, b'\x00')
 
         try:
-            cipher = AES.new(key, AES.MODE_ECB)
-            decrypted_raw = cipher.decrypt(ciphertext)
+            if fast_mode:
+                if not _PYCRYPTODOME_AVAILABLE:
+                    raise ImportError("pycryptodome chưa cài: pip install pycryptodome")
+                cipher = _CryptoAES.new(key, _CryptoAES.MODE_ECB)  # type: ignore[union-attr]
+                decrypted_raw = cipher.decrypt(ciphertext)
+            else:
+                cipher = PureAES(key)
+                decrypted_raw = cipher.decrypt(ciphertext)
 
-            # Kiểm tra nhanh: 4 bytes đầu phải là ASCII printable
-            if is_valid_plaintext(decrypted_raw):
+            try:
+                unpadded = unpad(decrypted_raw, 16)
+            except ValueError:
+                continue
+
+            score = score_plaintext(unpadded)
+            if score >= score_threshold:
                 try:
-                    plaintext = unpad(decrypted_raw, AES.block_size).decode('utf-8')
-                    elapsed = time.time() - start_time
-                    kps = keys_tested / elapsed if elapsed > 0 else 0
-
+                    plaintext = unpadded.decode('utf-8')
                     return {
                         'found': True,
                         'key_int': i,
                         'key_hex': key_part.hex().upper(),
                         'key_full_hex': key.hex().upper(),
                         'plaintext': plaintext,
-                        'elapsed_seconds': elapsed,
-                        'keys_tested': keys_tested + 1,
-                        'keys_per_second': kps,
-                        'total_keyspace': max_keys,
-                        'percent_searched': ((i + 1) / max_keys) * 100
+                        'plaintext_score': score,
+                        'keys_tested': (i - start + 1),
                     }
-                except (ValueError, UnicodeDecodeError):
-                    pass  # Padding sai hoặc không phải UTF-8
+                except UnicodeDecodeError:
+                    pass
         except Exception:
             pass
 
-        keys_tested += 1
+    return {
+        'found': False,
+        'keys_tested': (end - start),
+    }
 
-        # Gọi callback để cập nhật UI
-        if callback is not None and keys_tested % UPDATE_INTERVAL == 0:
+
+def brute_force_aes(
+    ciphertext: bytes,
+    key_bits: int,
+    callback: Optional[CallbackType] = None,
+    detail_callback: Optional[DetailCallbackType] = None,
+    stop_flag: Optional[object] = None,
+    workers: int = 1,
+    chunk_size: int = 10000,
+    score_threshold: float = 0.9,
+    detail_interval: Optional[int] = None,
+    fast_mode: bool = False,
+) -> Dict[str, object]:
+    """
+    Thử tất cả khóa từ 0 đến 2^key_bits - 1.
+
+    Args:
+        ciphertext: Dữ liệu đã mã hóa
+        key_bits: Độ dài khóa cần tìm
+        callback: Hàm callback(current, total, elapsed)
+        stop_flag: Object có is_set() để dừng sớm
+        fast_mode: Sử dụng thư viện PyCryptodome để tăng tốc
+
+    Returns:
+        dict: Kết quả brute-force
+    """
+    validate_key_bits(key_bits)
+
+    max_keys = 1 << key_bits
+    key_bytes_len = (key_bits + 7) // 8
+    start_time = time.time()
+    keys_tested = 0
+    update_interval = max(1, min(100_000, max_keys // 100))
+    if detail_interval is None:
+        detail_interval = max(1, min(10_000, max_keys // 200))
+
+    def emit_detail(event: str, **payload: object) -> None:
+        if detail_callback is None:
+            return
+        elapsed = time.time() - start_time
+        current = int(payload.get('current', keys_tested) or 0)
+        detail_callback({
+            'event': event,
+            'current': current,
+            'total': max_keys,
+            'elapsed': elapsed,
+            'percent': (current / max_keys) * 100 if max_keys else 0.0,
+            **payload,
+        })
+
+    if workers > 1:
+        emit_detail(
+            'start',
+            workers=workers,
+            key_bits=key_bits,
+            keyspace=max_keys,
+            mode='multiprocessing',
+            fast_mode=fast_mode,
+        )
+        safe_workers = max(1, min(workers, cpu_count() or 1))
+        chunk = max(1, chunk_size)
+        ranges = [(i, min(i + chunk, max_keys), key_bits, ciphertext, score_threshold, fast_mode)
+                  for i in range(0, max_keys, chunk)]
+
+        with Pool(processes=safe_workers) as pool:
+            for result in pool.imap_unordered(_bruteforce_worker, ranges):
+                if stop_flag is not None and stop_flag.is_set():
+                    pool.terminate()
+                    break
+
+                keys_tested += result.get('keys_tested', 0)
+                if callback is not None:
+                    elapsed = time.time() - start_time
+                    callback(keys_tested, max_keys, elapsed)
+                emit_detail(
+                    'chunk_done',
+                    current=keys_tested,
+                    keys_tested=keys_tested,
+                    workers=safe_workers,
+                )
+
+                if result.get('found'):
+                    pool.terminate()
+                    elapsed = time.time() - start_time
+                    kps = keys_tested / elapsed if elapsed > 0 else 0
+                    emit_detail(
+                        'found',
+                        current=keys_tested,
+                        key_int=result['key_int'],
+                        key_hex=result['key_hex'],
+                        key_full_hex=result['key_full_hex'],
+                        plaintext=result['plaintext'],
+                        plaintext_score=result.get('plaintext_score', 0.0),
+                        keys_per_second=kps,
+                    )
+                    return {
+                        'found': True,
+                        'key_int': result['key_int'],
+                        'key_hex': result['key_hex'],
+                        'key_full_hex': result['key_full_hex'],
+                        'plaintext': result['plaintext'],
+                        'plaintext_score': result.get('plaintext_score', 0.0),
+                        'elapsed_seconds': elapsed,
+                        'keys_tested': keys_tested,
+                        'keys_per_second': kps,
+                        'total_keyspace': max_keys,
+                        'percent_searched': (keys_tested / max_keys) * 100,
+                    }
+
+        elapsed = time.time() - start_time
+        kps = keys_tested / elapsed if elapsed > 0 else 0
+        emit_detail('exhausted', current=keys_tested, keys_tested=keys_tested)
+        return {
+            'found': False,
+            'key_int': None,
+            'key_hex': None,
+            'key_full_hex': None,
+            'plaintext': None,
+            'plaintext_score': 0.0,
+            'elapsed_seconds': elapsed,
+            'keys_tested': keys_tested,
+            'keys_per_second': kps,
+            'total_keyspace': max_keys,
+            'percent_searched': 100.0,
+        }
+
+    emit_detail(
+        'start',
+        current=0,
+        workers=1,
+        key_bits=key_bits,
+        keyspace=max_keys,
+        key_bytes_len=key_bytes_len,
+        score_threshold=score_threshold,
+        mode='sequential',
+        fast_mode=fast_mode,
+    )
+
+    for i in range(max_keys):
+        if stop_flag is not None and stop_flag.is_set():
+            emit_detail('stopped', current=keys_tested, keys_tested=keys_tested)
+            break
+
+        current = i + 1
+        key_part = i.to_bytes(key_bytes_len, byteorder='big')
+        key = key_part.ljust(16, b'\x00')
+        key_hex = key_part.hex().upper()
+
+        if detail_callback is not None and (i == 0 or current % detail_interval == 0):
+            emit_detail(
+                'trying',
+                current=current,
+                key_int=i,
+                key_hex=key_hex,
+                key_full_hex=key.hex().upper(),
+            )
+
+        try:
+            if fast_mode:
+                if not _PYCRYPTODOME_AVAILABLE:
+                    raise ImportError("pycryptodome chưa cài: pip install pycryptodome")
+                cipher = _CryptoAES.new(key, _CryptoAES.MODE_ECB)  # type: ignore[union-attr]
+                decrypted_raw = cipher.decrypt(ciphertext)
+            else:
+                cipher = PureAES(key)
+                decrypted_raw = cipher.decrypt(ciphertext)
+
+            # Unpad trước, nếu padding không hợp lệ → bỏ qua ngay
+            try:
+                unpadded = unpad(decrypted_raw, 16)
+            except ValueError:
+                continue
+
+            # Validate toàn bộ dữ liệu sau unpad
+            score = score_plaintext(unpadded)
+            preview = unpadded[:80].decode('utf-8', errors='replace')
+            emit_detail(
+                'padding_valid',
+                current=current,
+                key_int=i,
+                key_hex=key_hex,
+                plaintext_preview=preview,
+                plaintext_score=score,
+            )
+            if score >= score_threshold:
+                try:
+                    plaintext = unpadded.decode('utf-8')
+                    elapsed = time.time() - start_time
+                    kps = current / elapsed if elapsed > 0 else 0
+                    emit_detail(
+                        'found',
+                        current=current,
+                        key_int=i,
+                        key_hex=key_hex,
+                        key_full_hex=key.hex().upper(),
+                        plaintext=plaintext,
+                        plaintext_score=score,
+                        keys_per_second=kps,
+                    )
+
+                    return {
+                        'found': True,
+                        'key_int': i,
+                        'key_hex': key_hex,
+                        'key_full_hex': key.hex().upper(),
+                        'plaintext': plaintext,
+                        'plaintext_score': score,
+                        'elapsed_seconds': elapsed,
+                        'keys_tested': current,
+                        'keys_per_second': kps,
+                        'total_keyspace': max_keys,
+                        'percent_searched': (current / max_keys) * 100,
+                    }
+                except UnicodeDecodeError:
+                    pass
+        except Exception:
+            pass
+
+        keys_tested = current
+        if callback is not None and keys_tested % update_interval == 0:
             elapsed = time.time() - start_time
             callback(keys_tested, max_keys, elapsed)
 
     elapsed = time.time() - start_time
     kps = keys_tested / elapsed if elapsed > 0 else 0
+    emit_detail('exhausted', current=keys_tested, keys_tested=keys_tested)
 
     return {
         'found': False,
@@ -101,15 +331,16 @@ def brute_force_aes(
         'key_hex': None,
         'key_full_hex': None,
         'plaintext': None,
+        'plaintext_score': 0.0,
         'elapsed_seconds': elapsed,
         'keys_tested': keys_tested,
         'keys_per_second': kps,
         'total_keyspace': max_keys,
-        'percent_searched': 100.0
+        'percent_searched': 100.0,
     }
 
 
-def estimate_time(key_bits: int, keys_per_second: float = None) -> dict:
+def estimate_time(key_bits: int, keys_per_second: float = None) -> Dict[str, object]:
     """
     Ước tính thời gian brute-force dựa trên lý thuyết.
 
@@ -120,7 +351,9 @@ def estimate_time(key_bits: int, keys_per_second: float = None) -> dict:
     Returns:
         dict: Thông tin ước tính
     """
-    keyspace = 2 ** key_bits
+    if key_bits <= 0:
+        raise ValueError("key_bits phải lớn hơn 0")
+    keyspace = 1 << key_bits
 
     if keys_per_second is None or keys_per_second <= 0:
         keys_per_second = 50_000
@@ -128,17 +361,16 @@ def estimate_time(key_bits: int, keys_per_second: float = None) -> dict:
     avg_time = (keyspace / 2) / keys_per_second
     worst_time = keyspace / keys_per_second
 
-    def format_time(seconds):
+    def format_time(seconds: float) -> str:
         if seconds < 60:
             return f"{seconds:.1f} giây"
-        elif seconds < 3600:
-            return f"{seconds/60:.1f} phút"
-        elif seconds < 86400:
-            return f"{seconds/3600:.1f} giờ"
-        elif seconds < 86400 * 365:
-            return f"{seconds/86400:.1f} ngày"
-        else:
-            return f"{seconds/86400/365:.2e} năm"
+        if seconds < 3600:
+            return f"{seconds / 60:.1f} phút"
+        if seconds < 86400:
+            return f"{seconds / 3600:.1f} giờ"
+        if seconds < 86400 * 365:
+            return f"{seconds / 86400:.1f} ngày"
+        return f"{seconds / 86400 / 365:.2e} năm"
 
     return {
         'key_bits': key_bits,
@@ -148,7 +380,7 @@ def estimate_time(key_bits: int, keys_per_second: float = None) -> dict:
         'avg_time_seconds': avg_time,
         'worst_time_seconds': worst_time,
         'avg_time_formatted': format_time(avg_time),
-        'worst_time_formatted': format_time(worst_time)
+        'worst_time_formatted': format_time(worst_time),
     }
 
 
