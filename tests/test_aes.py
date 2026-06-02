@@ -14,6 +14,7 @@ from aes_engine import (
     bytes_to_hex, hex_to_bytes, PureAES, pad, unpad
 )
 from brute_force import brute_force_aes, is_valid_plaintext, estimate_time
+from benchmark import benchmark_key_length, parse_args
 
 
 class TestAESEngine(unittest.TestCase):
@@ -254,6 +255,25 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(result['key_int'], key_int)
         self.assertEqual(result['plaintext'].strip(), plaintext)
         print(f"TC13 PASS: Full pipeline 8-bit OK | key={key_int} | text='{result['plaintext']}'")
+
+
+class TestBenchmark(unittest.TestCase):
+    """Test cases cho benchmark CLI helpers."""
+
+    def test_benchmark_parse_key_int_hex(self):
+        """TC14: --key-int chap nhan gia tri hex."""
+        args = parse_args(["--bits", "8", "--key-int", "0x2A", "--no-plot", "--no-json"])
+        self.assertEqual(args.key_int, 42)
+        print("TC14 PASS: benchmark --key-int parses hex values")
+
+    def test_benchmark_fixed_key_int(self):
+        """TC15: Benchmark voi key co dinh co the tai lap."""
+        result = benchmark_key_length(8, test_text="SECRET", verbose=False, key_int=42)
+        self.assertTrue(result['found'])
+        self.assertEqual(result['actual_key_int'], 42)
+        self.assertEqual(result['found_key_int'], 42)
+        self.assertEqual(result['found_plaintext'], "SECRET")
+        print("TC15 PASS: benchmark fixed key finds expected key/plaintext")
 
 
 if __name__ == "__main__":
