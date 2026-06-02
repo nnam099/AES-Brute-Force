@@ -6,6 +6,7 @@ Chạy: python -m pytest tests/ -v
 
 import sys
 import os
+import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 import unittest
@@ -14,7 +15,7 @@ from aes_engine import (
     bytes_to_hex, hex_to_bytes, PureAES, pad, unpad
 )
 from brute_force import brute_force_aes, is_valid_plaintext, estimate_time
-from benchmark import benchmark_key_length, parse_args
+from benchmark import benchmark_key_length, parse_args, resolve_output_paths
 
 
 class TestAESEngine(unittest.TestCase):
@@ -274,6 +275,33 @@ class TestDoHieuNang(unittest.TestCase):
         self.assertEqual(result['found_key_int'], 42)
         self.assertEqual(result['found_plaintext'], "SECRET")
         print("TC15 ĐẠT: Khóa cố định tìm đúng khóa và bản rõ")
+
+    def test_tc16_duong_dan_ket_qua_khong_ghi_de(self):
+        """TC16: Đường dẫn mặc định nằm trong thư mục kết quả riêng."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            chart_path, json_path = resolve_output_paths(
+                output=None,
+                json_path=None,
+                output_dir=tmp_dir,
+                no_plot=False,
+                no_json=False,
+            )
+            self.assertTrue(chart_path.endswith(os.path.join(tmp_dir, "benchmark_chart.png")))
+            self.assertTrue(json_path.endswith(os.path.join(tmp_dir, "benchmark_data.json")))
+        print("TC16 ĐẠT: Kết quả đo hiệu năng mặc định dùng thư mục riêng")
+
+    def test_tc17_khong_tao_duong_dan_khi_tat_luu(self):
+        """TC17: Không cần đường dẫn khi tắt cả biểu đồ và JSON."""
+        chart_path, json_path = resolve_output_paths(
+            output=None,
+            json_path=None,
+            output_dir=None,
+            no_plot=True,
+            no_json=True,
+        )
+        self.assertIsNone(chart_path)
+        self.assertIsNone(json_path)
+        print("TC17 ĐẠT: Không tạo đường dẫn khi tắt lưu biểu đồ và JSON")
 
 
 if __name__ == "__main__":

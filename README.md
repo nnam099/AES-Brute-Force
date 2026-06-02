@@ -28,7 +28,7 @@ AES-Brute-Force/
 │   ├── main.py            # Entry point (GUI / CLI)
 │   └── __init__.py
 ├── tests/
-│   └── test_aes.py        # 21 test cases: kiểm thử đơn vị + vector NIST FIPS-197
+│   └── test_aes.py        # 23 test cases: kiểm thử đơn vị + vector NIST FIPS-197
 ├── results/
 │   ├── benchmark_chart.png
 │   └── benchmark_data.json
@@ -101,12 +101,15 @@ python main.py --cli --text SECRET --bits 20 --workers 4
 ```bash
 cd src
 python benchmark.py --bits 8 12 16 --text SECRET --key-int 0x2A
+
+# Lưu vào thư mục riêng để không ghi đè kết quả cũ:
+python benchmark.py --bits 8 12 16 --output-dir results/run_demo
 ```
 
 ### Chạy tests
 ```bash
 python -m pytest tests/ -v
-# 21 passed
+# 23 passed
 ```
 
 ---
@@ -191,7 +194,7 @@ for i in range(2 ** key_bits):           # Thử tất cả khóa
 
 ---
 
-## 🧪 Test Cases (21 tests — tất cả pass)
+## 🧪 Test Cases (23 tests — tất cả pass)
 
 | ID            | Loại        | Mô tả                                          |
 |---------------|-------------|------------------------------------------------|
@@ -215,6 +218,8 @@ for i in range(2 ** key_bits):           # Thử tất cả khóa
 | TC13          | Tích hợp    | Quy trình đầy đủ: mã hóa → vét cạn → xác minh  |
 | TC14          | Đo hiệu năng| `--key-int` đọc được giá trị dạng hex          |
 | TC15          | Đo hiệu năng| Đo hiệu năng với khóa cố định tìm đúng kết quả  |
+| TC16          | Đo hiệu năng| Đường dẫn kết quả mặc định không ghi đè         |
+| TC17          | Đo hiệu năng| Không tạo đường dẫn khi tắt lưu biểu đồ/JSON    |
 
 ---
 

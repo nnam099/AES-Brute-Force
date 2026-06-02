@@ -5,6 +5,7 @@ benchmark.py - Đo lường và phân tích hiệu năng vét cạn.
 from __future__ import annotations
 
 import argparse
+from datetime import datetime
 import json
 from pathlib import Path
 import sys
@@ -21,6 +22,8 @@ from brute_force import brute_force_aes, estimate_time, SUPPORTED_KEY_BITS
 
 DEFAULT_KEY_BITS = [8, 12, 16]
 RESULTS_DIR = Path(__file__).resolve().parent.parent / "results"
+DEFAULT_CHART_NAME = "benchmark_chart.png"
+DEFAULT_JSON_NAME = "benchmark_data.json"
 
 
 def configure_console() -> None:
@@ -41,6 +44,45 @@ def parse_int(value: str) -> int:
         raise argparse.ArgumentTypeError(
             f"Giá trị số nguyên không hợp lệ: {value!r}"
         ) from exc
+
+
+def make_run_dir(base_dir: Path = RESULTS_DIR, timestamp: Optional[str] = None) -> Path:
+    """Tạo tên thư mục kết quả riêng để tránh ghi đè các lần đo trước."""
+    stamp = timestamp or datetime.now().strftime("%Y%m%d_%H%M%S")
+    candidate = base_dir / f"benchmark_{stamp}"
+    if not candidate.exists():
+        return candidate
+
+    index = 2
+    while True:
+        fallback = base_dir / f"benchmark_{stamp}_{index}"
+        if not fallback.exists():
+            return fallback
+        index += 1
+
+
+def resolve_output_paths(
+    output: Optional[str],
+    json_path: Optional[str],
+    output_dir: Optional[str],
+    no_plot: bool,
+    no_json: bool,
+) -> tuple[Optional[str], Optional[str]]:
+    """Xác định đường dẫn lưu biểu đồ/JSON mà không ghi đè mặc định."""
+    if no_plot and no_json:
+        return None, None
+
+    run_dir = Path(output_dir) if output_dir is not None else make_run_dir()
+
+    chart_path = None if no_plot else output
+    data_path = None if no_json else json_path
+
+    if chart_path is None and not no_plot:
+        chart_path = str(run_dir / DEFAULT_CHART_NAME)
+    if data_path is None and not no_json:
+        data_path = str(run_dir / DEFAULT_JSON_NAME)
+
+    return chart_path, data_path
 
 
 def benchmark_key_length(
@@ -134,9 +176,9 @@ def run_all_benchmarks(
 def plot_results(results: List[dict], save_path: str = None) -> str:
     """Vẽ biểu đồ thời gian theo độ dài khóa và lưu ảnh."""
     if save_path is None:
-        save_path = str(RESULTS_DIR / "benchmark_chart.png")
+        save_path = str(make_run_dir() / DEFAULT_CHART_NAME)
 
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    Path(save_path).parent.mkdir(parents=True, exist_ok=True)
     bits = [r['key_bits'] for r in results]
     times = [r['elapsed_seconds'] for r in results]
     kps_avg = sum(r['keys_per_second'] for r in results) / len(results)
@@ -196,8 +238,8 @@ def plot_results(results: List[dict], save_path: str = None) -> str:
 def save_results_json(results: List[dict], path: str = None) -> str:
     """Lưu kết quả benchmark ra file JSON."""
     if path is None:
-        path = str(RESULTS_DIR / "benchmark_data.json")
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+        path = str(make_run_dir() / DEFAULT_JSON_NAME)
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
     print(f"✅ Dữ liệu đã lưu: {path}")
@@ -220,8 +262,9 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument('--text', default='SECRET', help='Bản rõ dùng để đo hiệu năng.')
     parser.add_argument('--workers', type=int, default=1, help='Số tiến trình dùng cho vét cạn.')
     parser.add_argument('--key-int', type=parse_int, default=None, help='Giá trị khóa cố định để chạy tái lập; chấp nhận số thập phân hoặc dạng 0x...')
-    parser.add_argument('--output', default=str(RESULTS_DIR / 'benchmark_chart.png'), help='Đường dẫn lưu biểu đồ.')
-    parser.add_argument('--json', default=str(RESULTS_DIR / 'benchmark_data.json'), help='Đường dẫn lưu dữ liệu JSON.')
+    parser.add_argument('--output-dir', default=None, help='Thư mục lưu kết quả. Mặc định tạo thư mục timestamp trong results/.')
+    parser.add_argument('--output', default=None, help='Đường dẫn lưu biểu đồ. Nếu bỏ trống, dùng file trong thư mục kết quả riêng.')
+    parser.add_argument('--json', default=None, help='Đường dẫn lưu dữ liệu JSON. Nếu bỏ trống, dùng file trong thư mục kết quả riêng.')
     parser.add_argument('--no-plot', action='store_true', help='Không vẽ biểu đồ.')
     parser.add_argument('--no-json', action='store_true', help='Không lưu dữ liệu JSON.')
     return parser.parse_args(argv)
@@ -237,11 +280,19 @@ def main(argv: Sequence[str] | None = None) -> None:
         key_int=args.key_int,
     )
 
-    if not args.no_plot:
-        plot_results(results, save_path=args.output)
+    chart_path, json_path = resolve_output_paths(
+        args.output,
+        args.json,
+        args.output_dir,
+        args.no_plot,
+        args.no_json,
+    )
 
-    if not args.no_json:
-        save_results_json(results, path=args.json)
+    if chart_path is not None:
+        plot_results(results, save_path=chart_path)
+
+    if json_path is not None:
+        save_results_json(results, path=json_path)
 
 
 if __name__ == "__main__":
