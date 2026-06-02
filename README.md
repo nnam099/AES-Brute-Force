@@ -21,14 +21,14 @@
 ```
 AES-Brute-Force/
 ├── src/
-│   ├── aes_engine.py      # AES-128 từ Scratch: S-box, GF(2^8), KeyExpansion, ECB, PKCS#7
+│   ├── aes_engine.py      # AES-128 thuần Python: S-box, GF(2^8), KeyExpansion, ECB, PKCS#7
 │   ├── brute_force.py     # Vét cạn tuần tự + multiprocessing + fast mode
 │   ├── benchmark.py       # Đo lường hiệu năng & vẽ biểu đồ matplotlib
 │   ├── gui.py             # Giao diện Tkinter 3 tab
 │   ├── main.py            # Entry point (GUI / CLI)
 │   └── __init__.py
 ├── tests/
-│   └── test_aes.py        # 21 test cases: unit tests + NIST FIPS-197 vectors
+│   └── test_aes.py        # 21 test cases: kiểm thử đơn vị + vector NIST FIPS-197
 ├── results/
 │   ├── benchmark_chart.png
 │   └── benchmark_data.json
@@ -181,13 +181,13 @@ for i in range(2 ** key_bits):           # Thử tất cả khóa
 | Công nghệ        | Mục đích                                        |
 |------------------|-------------------------------------------------|
 | Python 3.8+      | Ngôn ngữ chính                                  |
-| **Pure AES**     | AES-128 từ Scratch (S-box, GF(2^8), 10 rounds) |
+| **AES thuần Python** | AES-128 tự triển khai (S-box, GF(2^8), 10 vòng) |
 | tkinter          | Giao diện đồ họa (built-in)                     |
-| matplotlib       | Vẽ biểu đồ benchmark                            |
+| matplotlib       | Vẽ biểu đồ đo hiệu năng                         |
 | threading        | Chạy vét cạn không làm đơ GUI                   |
 | multiprocessing  | Tăng tốc vét cạn (tùy chọn)                     |
 | pycryptodome     | AES chuẩn cho chế độ nhanh (tùy chọn)           |
-| unittest / pytest| Unit testing                                    |
+| unittest / pytest| Kiểm thử đơn vị                                 |
 
 ---
 
@@ -212,9 +212,9 @@ for i in range(2 ** key_bits):           # Thử tất cả khóa
 | TC10          | Vét cạn     | `is_valid_plaintext()` hoạt động đúng          |
 | TC11 / TC11b  | Vét cạn     | `estimate_time()` cho 16-bit và 128-bit        |
 | TC12          | Vét cạn     | Không gian khóa = 2^n                          |
-| TC13          | Integration | Quy trình đầy đủ: mã hóa → vét cạn → xác minh  |
-| TC14          | Benchmark   | `--key-int` đọc được giá trị dạng hex          |
-| TC15          | Benchmark   | Đo hiệu năng với khóa cố định tìm đúng kết quả  |
+| TC13          | Tích hợp    | Quy trình đầy đủ: mã hóa → vét cạn → xác minh  |
+| TC14          | Đo hiệu năng| `--key-int` đọc được giá trị dạng hex          |
+| TC15          | Đo hiệu năng| Đo hiệu năng với khóa cố định tìm đúng kết quả  |
 
 ---
 
