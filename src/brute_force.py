@@ -1,6 +1,9 @@
 """
-brute_force.py - Module tấn công vét cạn AES
-Tấn công vét cạn tuần tự lên AES khóa ngắn.
+brute_force.py - Thuật toán vét cạn khóa AES trong phạm vi đồ án.
+
+Ý tưởng chính: với n bit bí mật, không gian khóa có |K| = 2^n phần tử.
+Chương trình thử lần lượt từng giá trị i, dựng lại khóa AES-128 dạng
+bytes(i) || 00...00, giải mã bản mã và kiểm tra xem bản rõ có hợp lý không.
 """
 
 import time
@@ -8,7 +11,7 @@ from multiprocessing import Pool, cpu_count
 from typing import Callable, Dict, Optional, Tuple
 from aes_engine import PureAES, unpad, SUPPORTED_KEY_BITS
 
-# PyCryptodome (tuỳ chọn) — dùng cho chế độ nhanh
+# PyCryptodome (tuỳ chọn), dùng cho chế độ nhanh
 try:
     from Crypto.Cipher import AES as _CryptoAES
     _PYCRYPTODOME_AVAILABLE = True
@@ -40,8 +43,8 @@ def is_valid_plaintext(data: bytes) -> bool:
 
 def score_plaintext(data: bytes) -> float:
     """
-    Tinh diem plaintext theo ti le ky tu ASCII printable.
-    Tra ve gia tri tu 0.0 den 1.0.
+    Tính điểm bản rõ theo tỉ lệ ký tự ASCII in được.
+    Điểm nằm trong [0, 1]; bản rõ tiếng Anh/ngắn thường gần 1.
     """
     if len(data) == 0:
         return 0.0
@@ -51,7 +54,10 @@ def score_plaintext(data: bytes) -> float:
 
 def _bruteforce_worker(args: Tuple[int, int, int, bytes, float, bool]) -> Dict[str, object]:
     """
-    Worker quet mot doan keyspace [start, end).
+    Worker quét một đoạn không gian khóa [start, end).
+
+    Hàm này dùng cho multiprocessing, nên chỉ trả dict đơn giản để gửi
+    kết quả về tiến trình chính.
     """
     start, end, key_bits, ciphertext, score_threshold, fast_mode = args
     key_bytes_len = (key_bits + 7) // 8
@@ -90,8 +96,8 @@ def _bruteforce_worker(args: Tuple[int, int, int, bytes, float, bool]) -> Dict[s
                     }
                 except UnicodeDecodeError:
                     pass
-        except Exception:
-            pass
+        except (ValueError, ImportError):
+            continue
 
     return {
         'found': False,
@@ -114,6 +120,10 @@ def brute_force_aes(
     """
     Thử tất cả khóa từ 0 đến 2^key_bits - 1.
 
+    Đây là vét cạn theo đúng nghĩa: không suy luận khóa, chỉ duyệt hết
+    không gian khóa. Trung bình cần thử khoảng 2^(key_bits-1) khóa nếu
+    khóa thật phân bố đều trong khoảng.
+
     Args:
         ciphertext: Dữ liệu đã mã hóa
         key_bits: Độ dài khóa cần tìm
@@ -126,7 +136,7 @@ def brute_force_aes(
     """
     validate_key_bits(key_bits)
 
-    max_keys = 1 << key_bits
+    max_keys = 1 << key_bits  # 2^key_bits
     key_bytes_len = (key_bits + 7) // 8
     start_time = time.time()
     keys_tested = 0
@@ -265,13 +275,13 @@ def brute_force_aes(
                 cipher = PureAES(key)
                 decrypted_raw = cipher.decrypt(ciphertext)
 
-            # Unpad trước, nếu padding không hợp lệ → bỏ qua ngay
+            # Padding sai là dấu hiệu mạnh cho thấy khóa đang thử không đúng.
             try:
                 unpadded = unpad(decrypted_raw, 16)
             except ValueError:
                 continue
 
-            # Validate toàn bộ dữ liệu sau unpad
+            # Sau khi padding hợp lệ, kiểm tra xem bản rõ có giống văn bản không.
             score = score_plaintext(unpadded)
             preview = unpadded[:80].decode('utf-8', errors='replace')
             emit_detail(
@@ -313,8 +323,8 @@ def brute_force_aes(
                     }
                 except UnicodeDecodeError:
                     pass
-        except Exception:
-            pass
+        except (ValueError, ImportError):
+            continue
 
         keys_tested = current
         if callback is not None and keys_tested % update_interval == 0:
@@ -342,7 +352,12 @@ def brute_force_aes(
 
 def estimate_time(key_bits: int, keys_per_second: float = None) -> Dict[str, object]:
     """
-    Ước tính thời gian vét cạn dựa trên lý thuyết.
+    Ước tính thời gian vét cạn dựa trên công thức:
+
+        T_avg = 2^(n-1) / R
+        T_worst = 2^n / R
+
+    với n là số bit khóa và R là tốc độ thử khóa mỗi giây.
 
     Args:
         key_bits: Độ dài khóa (bits)
@@ -407,14 +422,14 @@ if __name__ == "__main__":
 
     print(f"\n=== KẾT QUẢ ===")
     if result['found']:
-        print(f"✅ Tìm thấy!")
+        print("Tìm thấy khóa.")
         print(f"   Khóa (số nguyên) : {result['key_int']}")
         print(f"   Khóa (hex)       : 0x{result['key_hex']}")
         print(f"   Bản rõ           : {result['plaintext']}")
         print(f"   Thời gian        : {result['elapsed_seconds']:.2f}s")
         print(f"   Khóa/giây        : {result['keys_per_second']:,.0f}")
     else:
-        print("❌ Không tìm thấy!")
+        print("Không tìm thấy khóa.")
 
     print("\n=== ƯỚC TÍNH THỜI GIAN ===")
     kps = result['keys_per_second']

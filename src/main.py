@@ -42,7 +42,7 @@ def check_dependencies() -> None:
         missing.append("matplotlib    (pip install matplotlib)")
 
     if missing:
-        print("❌ Thiếu thư viện:")
+        print("[LOI] Thiếu thư viện:")
         for m in missing:
             print(f"   - {m}")
         print("\nCài đặt: pip install matplotlib")
@@ -105,7 +105,7 @@ def run_cli(plaintext: str, key_bits: int, workers: int, fast_mode: bool = False
     print(f"Độ dài khóa  : {key_bits}-bit")
 
     ciphertext, key, key_int = encrypt_aes(plaintext, key_bits)
-    print(f"\n[Mã hóa] {plaintext!r} → bản mã")
+    print(f"\n[Mã hóa] {plaintext!r} -> bản mã")
     print(f"  Khóa (số nguyên) : {key_int}")
     print(f"  Khóa (hex)       : 0x{key_int:0{key_bits//4}X}")
     print(f"  Bản mã           : {bytes_to_hex(ciphertext)}")
@@ -127,7 +127,7 @@ def run_cli(plaintext: str, key_bits: int, workers: int, fast_mode: bool = False
 
     print("\n" + "=" * 55)
     if result['found']:
-        print("[ĐẠT] Đã tìm thấy khóa!")
+        print("[ĐẠT] Đã tìm thấy khóa.")
         print(f"   Khóa (số nguyên) : {result['key_int']}")
         print(f"   Khóa (hex)       : 0x{result['key_hex']}")
         print(f"   Bản rõ           : {result['plaintext']}")

@@ -1,3 +1,12 @@
+"""
+aes_engine.py - Phần cài đặt AES-128 dùng cho đồ án.
+
+File này cố tình viết AES bằng Python thuần để nhìn được các bước toán học:
+SubBytes, ShiftRows, MixColumns trên GF(2^8), AddRoundKey và KeyExpansion.
+Trong demo vét cạn, khóa vẫn dài 16 byte như AES-128, nhưng chỉ n bit đầu
+được xem là bí mật; các byte còn lại được điền 0x00.
+"""
+
 import os
 from typing import Optional, Tuple
 
@@ -48,6 +57,7 @@ def xtime(a: int) -> int:
     return (((a << 1) ^ 0x1B) & 0xFF) if (a & 0x80) else (a << 1)
 
 def multiply(x: int, y: int) -> int:
+    """Nhân hai byte trong trường GF(2^8) với đa thức rút gọn 0x11B."""
     ans = 0
     for i in range(8):
         if y & 1:
@@ -126,6 +136,7 @@ def inv_mix_columns(state: list):
         inv_mix_single_column(state[i])
 
 def key_expansion(key: bytes) -> list:
+    """Sinh 44 word khóa con cho 10 vòng AES-128."""
     key_symbols = [list(key[i:i+4]) for i in range(0, 16, 4)]
     key_schedule = []
     for i in range(4):
@@ -173,10 +184,12 @@ def decrypt_block(ciphertext: bytes, key_schedule: list) -> bytes:
     return matrix2bytes(state)
 
 def pad(data: bytes, block_size: int = 16) -> bytes:
+    """PKCS#7 padding: luôn thêm ít nhất 1 byte padding."""
     pad_len = block_size - (len(data) % block_size)
     return data + bytes([pad_len] * pad_len)
 
 def unpad(data: bytes, block_size: int = 16) -> bytes:
+    """Bỏ PKCS#7 padding và báo lỗi nếu padding không đúng mẫu."""
     if len(data) == 0:
         raise ValueError("Dữ liệu trống.")
     pad_len = data[-1]
@@ -217,6 +230,12 @@ def validate_key_bits(bits: int) -> None:
         )
 
 def generate_short_key(bits: int, key_int: Optional[int] = None) -> bytes:
+    """
+    Tạo khóa AES-128 cho thí nghiệm khóa ngắn.
+
+    Chỉ bits đầu có entropy; phần sau cố định bằng 0x00. Nhờ vậy không gian
+    khóa giảm từ 2^128 xuống 2^bits để có thể quan sát vét cạn.
+    """
     validate_key_bits(bits)
 
     key_bytes_len = (bits + 7) // 8
@@ -233,6 +252,7 @@ def generate_short_key(bits: int, key_int: Optional[int] = None) -> bytes:
     return key_part.ljust(16, b'\x00')
 
 def key_int_to_bytes(key_int: int, key_bits: int) -> bytes:
+    """Đổi số nguyên trong [0, 2^key_bits - 1] thành khóa AES-128 của demo."""
     validate_key_bits(key_bits)
     max_val = (1 << key_bits) - 1
     if key_int < 0 or key_int > max_val:
@@ -278,7 +298,7 @@ def decrypt_aes(ciphertext: bytes, key: bytes) -> Optional[str]:
         cipher = PureAES(key)
         padded_data = cipher.decrypt(ciphertext)
         return unpad(padded_data, 16).decode('utf-8')
-    except Exception:
+    except (ValueError, UnicodeDecodeError):
         return None
 
 def bytes_to_hex(data: bytes) -> str:
