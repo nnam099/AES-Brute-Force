@@ -1,5 +1,9 @@
 """
-benchmark.py - Đo lường và phân tích hiệu năng vét cạn.
+benchmark.py - Đo thời gian vét cạn với nhiều độ dài khóa.
+
+Mục tiêu của file này là lấy số liệu thực nghiệm để so sánh với công thức
+T_avg = 2^(n-1) / R. Mỗi lần chạy nên lưu vào thư mục riêng để không ghi đè
+kết quả cũ trong quá trình làm báo cáo.
 """
 
 from __future__ import annotations
@@ -92,18 +96,18 @@ def benchmark_key_length(
     workers: int = 1,
     key_int: Optional[int] = None,
 ) -> dict:
-    """Đo thời gian vét cạn cho một độ dài khóa cụ thể."""
+    """Mã hóa một bản rõ mẫu rồi đo thời gian tìm lại khóa bằng vét cạn."""
     if verbose:
-        print(f"\n[Đo hiệu năng khóa {key_bits}-bit]")
-        print(f"  Không gian khóa: 2^{key_bits} = {2**key_bits:,} khóa")
-        print(f"  Đang mã hóa '{test_text}'...")
+        print(f"\n[Khóa {key_bits}-bit]")
+        print(f"  Không gian khóa : 2^{key_bits} = {2**key_bits:,} khóa")
+        print(f"  Bản rõ mẫu      : {test_text!r}")
 
     ciphertext, key, actual_key_int = encrypt_aes(test_text, key_bits, key_int=key_int)
 
     if verbose:
         label = "Giá trị khóa cố định" if key_int is not None else "Giá trị khóa"
-        print(f"  {label}: {actual_key_int} (0x{actual_key_int:0{key_bits//4}X})")
-        print("  Đang chạy vét cạn...")
+        print(f"  {label:<16}: {actual_key_int} (0x{actual_key_int:0{key_bits//4}X})")
+        print("  Bắt đầu thử khóa...")
 
     result = brute_force_aes(ciphertext, key_bits, workers=workers)
 
@@ -123,11 +127,11 @@ def benchmark_key_length(
 
     if verbose:
         if result['found']:
-            print(f"  ✅ Tìm thấy: khóa={result['key_int']}, bản rõ='{result['plaintext']}'")
+            print(f"  Tìm thấy        : khóa={result['key_int']}, bản rõ={result['plaintext']!r}")
         else:
-            print("  ❌ Không tìm thấy (đã dừng sớm hoặc quét hết)")
-        print(f"  Thời gian : {result['elapsed_seconds']:.3f}s")
-        print(f"  Khóa/giây : {result['keys_per_second']:,.0f}")
+            print("  Không tìm thấy khóa phù hợp.")
+        print(f"  Thời gian       : {result['elapsed_seconds']:.3f}s")
+        print(f"  Tốc độ          : {result['keys_per_second']:,.0f} khóa/giây")
 
     return benchmark_result
 
@@ -143,12 +147,12 @@ def run_all_benchmarks(
         key_bits_list = DEFAULT_KEY_BITS
 
     print("=" * 55)
-    print("  ĐO HIỆU NĂNG VÉT CẠN AES")
+    print("  ĐO THỜI GIAN VÉT CẠN AES")
     print("=" * 55)
-    print(f"  Bản rõ kiểm thử: '{test_text}'")
-    print(f"  Độ dài khóa: {key_bits_list} bit")
+    print(f"  Bản rõ kiểm thử : {test_text!r}")
+    print(f"  Các độ dài khóa : {key_bits_list} bit")
     if key_int is not None:
-        print(f"  Khóa cố định: {key_int} (0x{key_int:X})")
+        print(f"  Khóa cố định    : {key_int} (0x{key_int:X})")
 
     results = []
     for bits in key_bits_list:
@@ -167,7 +171,7 @@ def run_all_benchmarks(
             f"{r['keyspace']:>15,} | "
             f"{r['elapsed_seconds']:>9.3f}s | "
             f"{r['keys_per_second']:>12,.0f} | "
-            f"{'✅' if r['found'] else '❌'}"
+            f"{'tìm thấy' if r['found'] else 'không thấy'}"
         )
 
     return results
@@ -189,7 +193,7 @@ def plot_results(results: List[dict], save_path: str = None) -> str:
     theoretical = [base_time * (2 ** (b - base_bits)) for b in all_bits]
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-    fig.suptitle('Vét cạn AES: Phân tích thời gian theo độ dài khóa', fontsize=14, fontweight='bold')
+    fig.suptitle('Thời gian vét cạn AES theo độ dài khóa', fontsize=14, fontweight='bold')
 
     ax1 = axes[0]
     ax1.plot(bits, times, 'bo-', linewidth=2, markersize=8, label='Thực nghiệm', zorder=5)
@@ -197,7 +201,7 @@ def plot_results(results: List[dict], save_path: str = None) -> str:
     ax1.set_yscale('log')
     ax1.set_xlabel('Độ dài khóa (bits)', fontsize=12)
     ax1.set_ylabel('Thời gian (giây, log scale)', fontsize=12)
-    ax1.set_title('Thực nghiệm vs Lý thuyết', fontsize=12)
+    ax1.set_title('Số đo thực nghiệm và đường tăng 2^n', fontsize=12)
     ax1.legend(fontsize=10)
     ax1.grid(True, which='both', alpha=0.3)
     for b, t in zip(bits, times):
@@ -215,23 +219,23 @@ def plot_results(results: List[dict], save_path: str = None) -> str:
     ax2.set_xscale('log')
     ax2.set_xlabel('Thời gian trung bình (giây, log scale)', fontsize=12)
     ax2.set_ylabel('Độ dài khóa (bits)', fontsize=12)
-    ax2.set_title('Ước tính thời gian vét cạn', fontsize=12)
+    ax2.set_title('Ước tính thời gian trung bình', fontsize=12)
     ax2.set_yticks(extended_bits)
     ax2.grid(True, axis='x', alpha=0.3)
 
     legend_elements = [
-        Patch(facecolor='#2ecc71', label='< 1 phút (NGUY HIỂM)'),
-        Patch(facecolor='#f39c12', label='< 1 giờ (YẾU)'),
-        Patch(facecolor='#e74c3c', label='> 1 giờ (an toàn hơn)'),
+        Patch(facecolor='#2ecc71', label='< 1 phút'),
+        Patch(facecolor='#f39c12', label='< 1 giờ'),
+        Patch(facecolor='#e74c3c', label='> 1 giờ'),
     ]
     ax2.legend(handles=legend_elements, fontsize=9, loc='lower right')
     ax2.axhline(y=128, color='purple', linestyle=':', linewidth=2, alpha=0.7)
-    ax2.text(1e-3, 130, '← AES-128 (chuẩn)', color='purple', fontsize=9, va='bottom')
+    ax2.text(1e-3, 130, 'AES-128 (chuẩn)', color='purple', fontsize=9, va='bottom')
 
     plt.tight_layout()
     plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.close()
-    print(f"\n✅ Biểu đồ đã lưu: {save_path}")
+    print(f"\nBiểu đồ đã lưu: {save_path}")
     return save_path
 
 
@@ -242,7 +246,7 @@ def save_results_json(results: List[dict], path: str = None) -> str:
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
-    print(f"✅ Dữ liệu đã lưu: {path}")
+    print(f"Dữ liệu đã lưu: {path}")
     return path
 
 
