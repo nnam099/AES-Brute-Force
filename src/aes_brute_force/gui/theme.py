@@ -11,30 +11,30 @@ import tkinter as tk
 from tkinter import scrolledtext
 
 # ---------------------------------------------------------------------------
-# Catppuccin Mocha palette
+# Soft Modern Dark Palette (Human-centered, friendly)
 # ---------------------------------------------------------------------------
-BG_BASE = "#24273A"
-BG_SURFACE = "#1E2030"
-BG_OVERLAY = "#363A4F"
-FG_TEXT = "#CAD3F5"
-FG_SUBTEXT = "#A5ADCB"
-ACCENT_BLUE = "#8AADF4"
-ACCENT_GREEN = "#A6DA95"
-ACCENT_RED = "#ED8796"
-ACCENT_PEACH = "#F5A97F"
-ACCENT_YELLOW = "#EED49F"
-ACCENT_MAUVE = "#C6A0F6"
-FG_DARK = "#1E2030"
+BG_BASE = "#1E1E2E"        # Deep but soft background
+BG_SURFACE = "#25253A"     # Slightly lighter for panels/sidebar
+BG_OVERLAY = "#313244"     # For cards and inputs
+FG_TEXT = "#CDD6F4"        # Soft white for main text
+FG_SUBTEXT = "#BAC2DE"     # Muted text for descriptions
+ACCENT_BLUE = "#89B4FA"    # Friendly light blue
+ACCENT_GREEN = "#A6E3A1"   # Success green, not too harsh
+ACCENT_RED = "#F38BA8"     # Soft alert red
+ACCENT_PEACH = "#FAB387"   # Warm peach
+ACCENT_YELLOW = "#F9E2AF"  # Soft warning yellow
+ACCENT_MAUVE = "#CBA6F7"   # Playful purple
+FG_DARK = "#11111B"        # Contrast color for button text
 
 # ---------------------------------------------------------------------------
-# Fonts
+# Fonts (More modern, readable)
 # ---------------------------------------------------------------------------
-FONT_HEADING = ("Segoe UI", 18, "bold")
+FONT_HEADING = ("Segoe UI", 20, "bold")
 FONT_SUBHEADING = ("Segoe UI", 10)
 FONT_LABEL = ("Segoe UI", 10, "bold")
 FONT_BODY = ("Segoe UI", 10)
-FONT_MONO = ("Consolas", 11)
-FONT_MONO_SM = ("Consolas", 10)
+FONT_MONO = ("Consolas", 10)
+FONT_MONO_SM = ("Consolas", 9)
 FONT_BTN = ("Segoe UI", 10, "bold")
 
 
