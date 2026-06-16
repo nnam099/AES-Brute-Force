@@ -6,8 +6,7 @@ the application a more professional, modern-desktop feel.
 """
 
 from __future__ import annotations
-
-import tkinter as tk
+import customtkinter as ctk
 from typing import Optional
 
 from aes_brute_force.gui import theme as T
@@ -20,21 +19,19 @@ from aes_brute_force.gui.widgets.stat_card import SidebarButton
 class AESBruteForceApp:
     """Main application window with sidebar navigation."""
 
-    def __init__(self, root: tk.Tk) -> None:
+    def __init__(self, root: ctk.CTk) -> None:
         self.root = root
         self.root.title("AES Brute-Force Demo")
         self.root.geometry("1060x740")
-        self.root.configure(bg=T.BG_BASE)
-        self.root.resizable(True, True)
         self.root.minsize(800, 600)
 
         # Shared state
         self.shared_ciphertext: Optional[bytes] = None
         self.shared_key_int: Optional[int] = None
         self.shared_key_bits: Optional[int] = None
-        self.status_var = tk.StringVar(value="Sẵn sàng — chọn chức năng từ sidebar")
+        self.status_var = ctk.StringVar(value="Sẵn sàng — chọn chức năng từ sidebar")
 
-        self._pages: dict[str, tk.Frame] = {}
+        self._pages: dict[str, ctk.CTkFrame] = {}
         self._buttons: dict[str, SidebarButton] = {}
         self._current_page: str = ""
 
@@ -42,19 +39,15 @@ class AESBruteForceApp:
 
     def _build(self) -> None:
         # ── Sidebar ──
-        sidebar = tk.Frame(self.root, bg=T.BG_SURFACE, width=180)
-        sidebar.pack(side=tk.LEFT, fill=tk.Y)
+        sidebar = ctk.CTkFrame(self.root, width=220, corner_radius=0)
+        sidebar.pack(side="left", fill="y")
         sidebar.pack_propagate(False)
 
         # App title in sidebar
-        title_frame = tk.Frame(sidebar, bg=T.BG_SURFACE, pady=16, padx=12)
-        title_frame.pack(fill=tk.X)
-        tk.Label(title_frame, text="🔐 AES Demo", font=("Segoe UI", 16, "bold"),
-                 bg=T.BG_SURFACE, fg=T.ACCENT_BLUE).pack(anchor="w")
-        tk.Label(title_frame, text="Minh họa vét cạn khóa", font=("Segoe UI", 9),
-                 bg=T.BG_SURFACE, fg=T.FG_SUBTEXT).pack(anchor="w")
-
-        tk.Frame(sidebar, bg=T.BG_OVERLAY, height=1).pack(fill=tk.X, pady=(0, 10))
+        title_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
+        title_frame.pack(fill="x", pady=(20, 10), padx=20)
+        ctk.CTkLabel(title_frame, text="🔐 AES Demo", font=T.FONT_HEADING, text_color=T.ACCENT_BLUE).pack(anchor="w")
+        ctk.CTkLabel(title_frame, text="Minh họa vét cạn khóa", font=T.FONT_SUBHEADING).pack(anchor="w")
 
         # Navigation buttons
         nav_items = [
@@ -62,40 +55,35 @@ class AESBruteForceApp:
             ("attack", "⚡", "Vét cạn (Brute-force)"),
             ("theory", "📖", "Góc lý thuyết"),
         ]
+        
+        btn_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
+        btn_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        
         for key, icon, label in nav_items:
-            btn = SidebarButton(sidebar, icon, label,
+            btn = SidebarButton(btn_frame, icon, label,
                                 command=lambda k=key: self._show_page(k),
                                 active=(key == "encrypt"))
-            btn.pack(fill=tk.X, pady=(2, 2), padx=8)
+            btn.pack(fill="x", pady=(2, 2))
             self._buttons[key] = btn
 
         # Version label at bottom of sidebar
-        tk.Label(sidebar, text="Phiên bản 2.0.0", font=("Segoe UI", 8),
-                 bg=T.BG_SURFACE, fg=T.FG_SUBTEXT).pack(side=tk.BOTTOM, pady=10)
-        tk.Label(sidebar, text="Đồ án môn Mật mã học", font=("Segoe UI", 8),
-                 bg=T.BG_SURFACE, fg=T.FG_SUBTEXT).pack(side=tk.BOTTOM)
+        ctk.CTkLabel(sidebar, text="Phiên bản 2.0.0\nĐồ án môn Mật mã học", font=("Segoe UI", 11), justify="center", text_color="gray").pack(side="bottom", pady=20)
 
         # ── Right side: header + content + status ──
-        right = tk.Frame(self.root, bg=T.BG_BASE)
-        right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        right = ctk.CTkFrame(self.root, fg_color="transparent", corner_radius=0)
+        right.pack(side="left", fill="both", expand=True)
 
         # Header
-        hdr = tk.Frame(right, bg=T.BG_BASE, pady=20, padx=30)
-        hdr.pack(fill=tk.X)
-        self._header_title = tk.Label(hdr, text="Mã hóa / Giải mã",
-                                       font=("Segoe UI", 18, "bold"),
-                                       bg=T.BG_BASE, fg=T.FG_TEXT)
-        self._header_title.pack(side=tk.LEFT)
-        self._header_sub = tk.Label(hdr, text="•  Tạo bản mã từ dữ liệu bí mật",
-                                     font=("Segoe UI", 10),
-                                     bg=T.BG_BASE, fg=T.FG_SUBTEXT)
-        self._header_sub.pack(side=tk.LEFT, padx=(16, 0), pady=(6, 0))
-
-        tk.Frame(right, bg=T.BG_OVERLAY, height=1).pack(fill=tk.X, padx=30)
+        hdr = ctk.CTkFrame(right, fg_color="transparent", corner_radius=0)
+        hdr.pack(fill="x", pady=20, padx=30)
+        self._header_title = ctk.CTkLabel(hdr, text="Mã hóa / Giải mã", font=T.FONT_HEADING)
+        self._header_title.pack(side="left")
+        self._header_sub = ctk.CTkLabel(hdr, text="•  Tạo bản mã từ dữ liệu bí mật", font=T.FONT_SUBHEADING, text_color="gray")
+        self._header_sub.pack(side="left", padx=(16, 0), pady=(6, 0))
 
         # Page container
-        self._container = tk.Frame(right, bg=T.BG_BASE)
-        self._container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self._container = ctk.CTkFrame(right, fg_color="transparent")
+        self._container.pack(fill="both", expand=True, padx=20, pady=(0, 10))
 
         # Create pages
         self.encrypt_tab = EncryptTab(self._container, app=self)
@@ -109,12 +97,10 @@ class AESBruteForceApp:
         }
 
         # Status bar
-        status_bar = tk.Frame(right, bg=T.BG_OVERLAY)
-        status_bar.pack(fill=tk.X, side=tk.BOTTOM)
-        tk.Frame(status_bar, bg=T.ACCENT_GREEN, width=3).pack(side=tk.LEFT, fill=tk.Y)
-        tk.Label(status_bar, textvariable=self.status_var,
-                 font=("Consolas", 9), bg=T.BG_OVERLAY, fg=T.ACCENT_GREEN,
-                 anchor="w", padx=12, pady=6).pack(fill=tk.X)
+        status_bar = ctk.CTkFrame(right, height=30, corner_radius=0)
+        status_bar.pack(fill="x", side="bottom")
+        status_bar.pack_propagate(False)
+        ctk.CTkLabel(status_bar, textvariable=self.status_var, font=T.FONT_MONO_SM, text_color=T.ACCENT_GREEN).pack(side="left", padx=15)
 
         # Show first page
         self._show_page("encrypt")
@@ -128,7 +114,7 @@ class AESBruteForceApp:
             self._pages[self._current_page].pack_forget()
 
         # Show new page
-        self._pages[key].pack(fill=tk.BOTH, expand=True)
+        self._pages[key].pack(fill="both", expand=True)
         self._current_page = key
 
         # Update sidebar active state

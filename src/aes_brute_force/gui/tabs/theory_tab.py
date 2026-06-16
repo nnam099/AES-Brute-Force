@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import tkinter as tk
+import customtkinter as ctk
 
 from aes_brute_force.gui import theme as T
 
@@ -69,12 +70,12 @@ Tài liệu:
 """
 
 
-class TheoryTab(tk.Frame):
+class TheoryTab(ctk.CTkFrame):
     """Tab 3: AES theory reference notes."""
 
-    def __init__(self, parent: tk.Widget, app=None) -> None:
-        super().__init__(parent, bg=T.BG_BASE)
-        txt = T.make_scrolled_text(self, borderwidth=16, wrap=tk.WORD)
-        txt.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
-        txt.insert(tk.END, _CONTENT)
+    def __init__(self, parent: ctk.CTkFrame, app=None) -> None:
+        super().__init__(parent, fg_color="transparent")
+        txt = ctk.CTkTextbox(self, font=T.FONT_MONO, border_width=2)
+        txt.pack(fill="both", expand=True, padx=20, pady=20)
+        txt.insert("1.0", _CONTENT)
         txt.configure(state="disabled")

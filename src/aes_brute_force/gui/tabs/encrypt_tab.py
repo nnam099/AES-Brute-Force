@@ -4,86 +4,81 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import messagebox
+import customtkinter as ctk
 
 from aes_brute_force.gui import theme as T
 from aes_brute_force.gui.widgets.stat_card import StatCard
 
 
-class EncryptTab(tk.Frame):
+class EncryptTab(ctk.CTkFrame):
     """Tab 1: encrypt plaintext and display ciphertext."""
 
-    def __init__(self, parent: tk.Widget, app) -> None:
-        super().__init__(parent, bg=T.BG_BASE)
+    def __init__(self, parent: ctk.CTkFrame, app) -> None:
+        super().__init__(parent, fg_color="transparent")
         self.app = app
         self._build()
 
     def _build(self) -> None:
         # ── Input section ──
-        inp = tk.Frame(self, bg=T.BG_BASE, padx=20, pady=12)
-        inp.pack(fill=tk.X)
+        inp = ctk.CTkFrame(self, fg_color="transparent")
+        inp.pack(fill="x", pady=12)
 
-        T.make_label(inp, "Nội dung cần mã hóa:").grid(row=0, column=0, sticky="w", pady=6, padx=(0, 10))
-        self.plaintext_entry = T.make_entry(inp, width=54)
+        ctk.CTkLabel(inp, text="Nội dung cần mã hóa:", font=T.FONT_LABEL).grid(row=0, column=0, sticky="w", pady=6, padx=(0, 10))
+        self.plaintext_entry = ctk.CTkEntry(inp, width=450, font=T.FONT_MONO)
         self.plaintext_entry.insert(0, "HELLO WORLD")
         self.plaintext_entry.grid(row=0, column=1, sticky="ew", pady=6)
         inp.columnconfigure(1, weight=1)
 
-        T.make_label(inp, "Độ dài khóa bí mật:").grid(row=1, column=0, sticky="w", pady=6, padx=(0, 10))
+        ctk.CTkLabel(inp, text="Độ dài khóa bí mật:", font=T.FONT_LABEL).grid(row=1, column=0, sticky="w", pady=6, padx=(0, 10))
         self.key_bits_var = tk.IntVar(value=16)
-        kf = tk.Frame(inp, bg=T.BG_OVERLAY, padx=8, pady=4)
+        kf = ctk.CTkFrame(inp, fg_color="transparent")
         kf.grid(row=1, column=1, sticky="w", pady=6)
         for v in [8, 12, 16, 20, 24, 32]:
-            tk.Radiobutton(
-                kf, text=str(v), variable=self.key_bits_var, value=v,
-                bg=T.BG_OVERLAY, fg=T.FG_TEXT, selectcolor=T.BG_SURFACE,
-                activebackground=T.BG_OVERLAY, activeforeground=T.ACCENT_BLUE,
-                font=T.FONT_BTN, cursor="hand2",
-            ).pack(side=tk.LEFT, padx=4)
-        tk.Label(kf, text="bit", font=T.FONT_BODY, bg=T.BG_OVERLAY,
-                 fg=T.FG_SUBTEXT).pack(side=tk.LEFT, padx=(2, 6))
+            ctk.CTkRadioButton(
+                kf, text=f"{v} bit", variable=self.key_bits_var, value=v,
+                font=T.FONT_BODY, fg_color=T.ACCENT_BLUE, hover_color=T.ACCENT_BLUE
+            ).pack(side="left", padx=(0, 15))
 
-        T.make_label(inp, "Khóa cố định:").grid(row=2, column=0, sticky="w", pady=6, padx=(0, 10))
-        fk = tk.Frame(inp, bg=T.BG_BASE)
+        ctk.CTkLabel(inp, text="Khóa cố định:", font=T.FONT_LABEL).grid(row=2, column=0, sticky="w", pady=6, padx=(0, 10))
+        fk = ctk.CTkFrame(inp, fg_color="transparent")
         fk.grid(row=2, column=1, sticky="w", pady=6)
         self.use_fixed_key = tk.BooleanVar(value=False)
-        tk.Checkbutton(
-            fk, text="Bật", variable=self.use_fixed_key,
-            bg=T.BG_BASE, fg=T.FG_TEXT, selectcolor=T.BG_SURFACE,
-            activebackground=T.BG_BASE, font=("Segoe UI", 9, "bold"),
-        ).pack(side=tk.LEFT)
-        self.key_int_entry = T.make_entry(fk, width=16)
+        ctk.CTkCheckBox(
+            fk, text="Bật", variable=self.use_fixed_key, font=T.FONT_BODY,
+            fg_color=T.ACCENT_BLUE, hover_color=T.ACCENT_BLUE
+        ).pack(side="left", padx=(0, 10))
+        self.key_int_entry = ctk.CTkEntry(fk, width=150, font=T.FONT_MONO)
         self.key_int_entry.insert(0, "142")
-        self.key_int_entry.pack(side=tk.LEFT, padx=8)
-        tk.Label(fk, text="(e.g. 142 or 0x8E)", font=("Segoe UI", 9),
-                 bg=T.BG_BASE, fg=T.FG_SUBTEXT).pack(side=tk.LEFT)
+        self.key_int_entry.pack(side="left", padx=8)
+        ctk.CTkLabel(fk, text="(e.g. 142 or 0x8E)", font=T.FONT_SUBHEADING, text_color="gray").pack(side="left")
 
         # ── Info cards ──
-        cards = tk.Frame(self, bg=T.BG_BASE, padx=20)
-        cards.pack(fill=tk.X, pady=(0, 8))
+        cards = ctk.CTkFrame(self, fg_color="transparent")
+        cards.pack(fill="x", pady=(0, 8))
 
         self.card_keyspace = StatCard(cards, "Không gian khóa", "2¹⁶ = 65,536", T.ACCENT_BLUE)
-        self.card_keyspace.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 6))
+        self.card_keyspace.pack(side="left", fill="x", expand=True, padx=(0, 6))
         self.card_key_val = StatCard(cards, "Khóa sử dụng", "—", T.ACCENT_GREEN)
-        self.card_key_val.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=3)
+        self.card_key_val.pack(side="left", fill="x", expand=True, padx=3)
         self.card_ct_len = StatCard(cards, "Ciphertext", "—", T.ACCENT_PEACH)
-        self.card_ct_len.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(6, 0))
+        self.card_ct_len.pack(side="left", fill="x", expand=True, padx=(6, 0))
 
         # Update keyspace card when bits change
         self.key_bits_var.trace_add("write", self._on_bits_change)
 
         # ── Buttons ──
-        btns = tk.Frame(self, bg=T.BG_BASE, padx=20)
-        btns.pack(fill=tk.X, pady=(0, 8))
-        T.make_button(btns, "🔒 Bắt đầu mã hóa", self._encrypt, T.ACCENT_BLUE).pack(side=tk.LEFT, padx=(0, 10))
-        T.make_button(btns, "🔓 Kiểm tra giải mã", self._decrypt, T.ACCENT_GREEN).pack(side=tk.LEFT, padx=(0, 10))
-        T.make_button(btns, "Xóa toàn bộ", self._clear, T.BG_OVERLAY, T.FG_TEXT).pack(side=tk.LEFT)
+        btns = ctk.CTkFrame(self, fg_color="transparent")
+        btns.pack(fill="x", pady=(10, 10))
+        ctk.CTkButton(btns, text="🔒 Bắt đầu mã hóa", command=self._encrypt, fg_color=T.ACCENT_BLUE, font=T.FONT_BTN, text_color="white").pack(side="left", padx=(0, 10))
+        ctk.CTkButton(btns, text="🔓 Kiểm tra giải mã", command=self._decrypt, fg_color=T.ACCENT_GREEN, font=T.FONT_BTN, text_color="white").pack(side="left", padx=(0, 10))
+        ctk.CTkButton(btns, text="Xóa toàn bộ", command=self._clear, fg_color="gray", hover_color="darkgray", font=T.FONT_BTN, text_color="white").pack(side="left")
 
         # ── Output ──
-        out = tk.Frame(self, bg=T.BG_BASE, padx=20)
-        out.pack(fill=tk.BOTH, expand=True, pady=(0, 12))
-        T.make_label(out, "Kết quả:").pack(anchor="w", pady=(0, 4))
-        self.output = T.make_scrolled_text(out, borderwidth=8)
-        self.output.pack(fill=tk.BOTH, expand=True)
+        out = ctk.CTkFrame(self, fg_color="transparent")
+        out.pack(fill="both", expand=True, pady=(0, 12))
+        ctk.CTkLabel(out, text="Kết quả:", font=T.FONT_LABEL).pack(anchor="w", pady=(0, 4))
+        self.output = ctk.CTkTextbox(out, font=T.FONT_MONO, border_width=2)
+        self.output.pack(fill="both", expand=True)
 
     def _on_bits_change(self, *_args) -> None:
         bits = self.key_bits_var.get()

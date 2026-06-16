@@ -6,17 +6,18 @@ import multiprocessing
 import threading
 import time
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox
+import customtkinter as ctk
 
 from aes_brute_force.gui import theme as T
 from aes_brute_force.gui.widgets.stat_card import StatCard
 
 
-class AttackTab(tk.Frame):
+class AttackTab(ctk.CTkFrame):
     """Tab 2: brute-force key search with dashboard-style progress."""
 
-    def __init__(self, parent: tk.Widget, app) -> None:
-        super().__init__(parent, bg=T.BG_BASE)
+    def __init__(self, parent: ctk.CTkFrame, app) -> None:
+        super().__init__(parent, fg_color="transparent")
         self.app = app
         self._bf_thread: threading.Thread | None = None
         self._stop_flag = threading.Event()
@@ -27,90 +28,78 @@ class AttackTab(tk.Frame):
 
     def _build(self) -> None:
         # ── Top config section ──
-        top = tk.Frame(self, bg=T.BG_BASE, padx=20, pady=12)
-        top.pack(fill=tk.X)
+        top = ctk.CTkFrame(self, fg_color="transparent")
+        top.pack(fill="x", pady=12)
 
         # Ciphertext input
-        ct_frame = tk.Frame(top, bg=T.BG_BASE)
-        ct_frame.pack(fill=tk.X, pady=(0, 12))
-        T.make_label(ct_frame, "Dữ liệu cần giải mã (Ciphertext):").pack(side=tk.LEFT, padx=(0, 15))
-        self.cipher_display = T.make_scrolled_text(
-            ct_frame, height=2, width=60, font=T.FONT_MONO_SM,
-            borderwidth=6, wrap=tk.WORD,
-        )
-        self.cipher_display.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        ct_frame = ctk.CTkFrame(top, fg_color="transparent")
+        ct_frame.pack(fill="x", pady=(0, 12))
+        ctk.CTkLabel(ct_frame, text="Dữ liệu cần giải mã (Ciphertext):", font=T.FONT_LABEL).pack(side="left", padx=(0, 15))
+        self.cipher_display = ctk.CTkTextbox(ct_frame, height=50, width=500, font=T.FONT_MONO_SM, border_width=2)
+        self.cipher_display.pack(side="left", fill="x", expand=True)
 
         # Key bits selector
-        bits_frame = tk.Frame(top, bg=T.BG_BASE)
-        bits_frame.pack(fill=tk.X, pady=(0, 8))
-        T.make_label(bits_frame, "Độ dài khóa bí mật (Entropy):").pack(side=tk.LEFT, padx=(0, 15))
+        bits_frame = ctk.CTkFrame(top, fg_color="transparent")
+        bits_frame.pack(fill="x", pady=(0, 8))
+        ctk.CTkLabel(bits_frame, text="Độ dài khóa bí mật (Entropy):", font=T.FONT_LABEL).pack(side="left", padx=(0, 15))
         self.key_bits_var = tk.IntVar(value=16)
-        kf = tk.Frame(bits_frame, bg=T.BG_OVERLAY, padx=8, pady=4)
-        kf.pack(side=tk.LEFT)
+        kf = ctk.CTkFrame(bits_frame, fg_color="transparent")
+        kf.pack(side="left")
         for v in [8, 12, 16, 20, 24]:
-            tk.Radiobutton(
-                kf, text=f"{v}", variable=self.key_bits_var, value=v,
-                bg=T.BG_OVERLAY, fg=T.FG_TEXT, selectcolor=T.BG_SURFACE,
-                activebackground=T.BG_OVERLAY, activeforeground=T.ACCENT_BLUE,
-                font=T.FONT_BTN, cursor="hand2",
-            ).pack(side=tk.LEFT, padx=4)
-        tk.Label(kf, text="bit", font=T.FONT_BODY, bg=T.BG_OVERLAY,
-                 fg=T.FG_SUBTEXT).pack(side=tk.LEFT, padx=(2, 6))
+            ctk.CTkRadioButton(
+                kf, text=str(v), variable=self.key_bits_var, value=v,
+                font=T.FONT_BODY, fg_color=T.ACCENT_BLUE, hover_color=T.ACCENT_BLUE
+            ).pack(side="left", padx=(0, 15))
+        ctk.CTkLabel(kf, text="bit", font=T.FONT_BODY, text_color="gray").pack(side="left", padx=(2, 6))
 
         # ── Stats dashboard (card row) ──
-        cards_frame = tk.Frame(self, bg=T.BG_BASE, padx=20)
-        cards_frame.pack(fill=tk.X, pady=(4, 8))
+        cards_frame = ctk.CTkFrame(self, fg_color="transparent")
+        cards_frame.pack(fill="x", pady=(4, 8))
 
         self.card_keys = StatCard(cards_frame, "Khóa đã thử", "0", T.ACCENT_GREEN)
-        self.card_keys.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 6))
+        self.card_keys.pack(side="left", fill="x", expand=True, padx=(0, 6))
 
         self.card_kps = StatCard(cards_frame, "Khóa / giây", "—", T.ACCENT_BLUE)
-        self.card_kps.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=3)
+        self.card_kps.pack(side="left", fill="x", expand=True, padx=3)
 
         self.card_time = StatCard(cards_frame, "Thời gian", "0.0s", T.ACCENT_PEACH)
-        self.card_time.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=3)
+        self.card_time.pack(side="left", fill="x", expand=True, padx=3)
 
         self.card_pct = StatCard(cards_frame, "Tiến trình", "0%", T.ACCENT_MAUVE)
-        self.card_pct.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(6, 0))
+        self.card_pct.pack(side="left", fill="x", expand=True, padx=(6, 0))
 
         # ── Progress bar ──
-        prog = tk.Frame(self, bg=T.BG_BASE, padx=20)
-        prog.pack(fill=tk.X, pady=(0, 8))
-        style = ttk.Style()
-        style.configure("Custom.Horizontal.TProgressbar", thickness=8,
-                        troughcolor=T.BG_OVERLAY, background=T.ACCENT_GREEN)
-        self.progress = ttk.Progressbar(prog, mode="determinate",
-                                         style="Custom.Horizontal.TProgressbar")
-        self.progress.pack(fill=tk.X)
+        prog = ctk.CTkFrame(self, fg_color="transparent")
+        prog.pack(fill="x", pady=(0, 8))
+        self.progress = ctk.CTkProgressBar(prog, height=8, progress_color=T.ACCENT_GREEN)
+        self.progress.pack(fill="x")
+        self.progress.set(0)
 
         # ── Action buttons ──
-        actions = tk.Frame(self, bg=T.BG_BASE, padx=20)
-        actions.pack(fill=tk.X, pady=(0, 12))
+        actions = ctk.CTkFrame(self, fg_color="transparent")
+        actions.pack(fill="x", pady=(0, 12))
 
-        self.btn_start = T.make_button(actions, "▶ Khởi chạy", self._start, T.ACCENT_GREEN, T.FG_DARK)
-        self.btn_start.pack(side=tk.LEFT, padx=(0, 10))
-        self.btn_stop = T.make_button(actions, "■ Dừng lại", self._stop, T.ACCENT_RED, T.FG_DARK)
-        self.btn_stop.pack(side=tk.LEFT, padx=(0, 8))
-        self.btn_stop.configure(state=tk.DISABLED)
+        self.btn_start = ctk.CTkButton(actions, text="▶ Khởi chạy", command=self._start, fg_color=T.ACCENT_GREEN, font=T.FONT_BTN, text_color="white")
+        self.btn_start.pack(side="left", padx=(0, 10))
+        self.btn_stop = ctk.CTkButton(actions, text="■ Dừng lại", command=self._stop, fg_color=T.ACCENT_RED, font=T.FONT_BTN, text_color="white", state="disabled")
+        self.btn_stop.pack(side="left", padx=(0, 8))
 
-        tk.Checkbutton(
-            actions, text="PyCryptodome", variable=self.fast_mode,
-            bg=T.BG_BASE, fg=T.ACCENT_GREEN, selectcolor=T.BG_SURFACE,
-            activebackground=T.BG_BASE, font=("Segoe UI", 9, "bold"),
-        ).pack(side=tk.LEFT, padx=(12, 0))
-        tk.Checkbutton(
-            actions, text="Log chi tiết", variable=self.verbose_log,
-            bg=T.BG_BASE, fg=T.FG_SUBTEXT, selectcolor=T.BG_SURFACE,
-            activebackground=T.BG_BASE, font=("Segoe UI", 9),
-        ).pack(side=tk.LEFT, padx=(12, 0))
-        T.make_button(actions, "Xóa log", self._clear, T.BG_OVERLAY, T.FG_TEXT).pack(side=tk.RIGHT)
+        ctk.CTkCheckBox(
+            actions, text="PyCryptodome", variable=self.fast_mode, font=T.FONT_BODY,
+            fg_color=T.ACCENT_GREEN, hover_color=T.ACCENT_GREEN
+        ).pack(side="left", padx=(12, 0))
+        ctk.CTkCheckBox(
+            actions, text="Log chi tiết", variable=self.verbose_log, font=T.FONT_BODY,
+            fg_color=T.ACCENT_BLUE, hover_color=T.ACCENT_BLUE
+        ).pack(side="left", padx=(12, 0))
+        ctk.CTkButton(actions, text="Xóa log", command=self._clear, fg_color="gray", hover_color="darkgray", font=T.FONT_BTN, text_color="white", width=80).pack(side="right")
 
         # ── Log ──
-        log_frame = tk.Frame(self, bg=T.BG_BASE, padx=20)
-        log_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 12))
-        T.make_label(log_frame, "Nhật ký:").pack(anchor="w", pady=(0, 4))
-        self.log = T.make_scrolled_text(log_frame, borderwidth=8)
-        self.log.pack(fill=tk.BOTH, expand=True)
+        log_frame = ctk.CTkFrame(self, fg_color="transparent")
+        log_frame.pack(fill="both", expand=True, pady=(0, 12))
+        ctk.CTkLabel(log_frame, text="Nhật ký:", font=T.FONT_LABEL).pack(anchor="w", pady=(0, 4))
+        self.log = ctk.CTkTextbox(log_frame, font=T.FONT_MONO, border_width=2)
+        self.log.pack(fill="both", expand=True)
 
     # ── Public ──────────────────────────────────────
 
@@ -150,7 +139,7 @@ class AttackTab(tk.Frame):
 
         # Reset UI
         self.log.delete("1.0", tk.END)
-        self.progress["value"] = 0
+        self.progress.set(0)
         for card in (self.card_keys, self.card_kps, self.card_time, self.card_pct):
             card.set_value("—" if card is self.card_kps else "0")
         self.card_pct.set_value("0%")
@@ -191,17 +180,17 @@ class AttackTab(tk.Frame):
 
     def _clear(self) -> None:
         self.log.delete("1.0", tk.END)
-        self.progress["value"] = 0
+        self.progress.set(0)
         self.card_pct.set_value("0%")
 
     def _set_running(self, running: bool) -> None:
-        self.btn_start.configure(state=tk.DISABLED if running else tk.NORMAL)
-        self.btn_stop.configure(state=tk.NORMAL if running else tk.DISABLED)
+        self.btn_start.configure(state="disabled" if running else "normal")
+        self.btn_stop.configure(state="normal" if running else "disabled")
 
     # ── Stats update ────────────────────────────────
 
     def _update_stats(self, cur, total, pct, kps, elapsed) -> None:
-        self.progress["value"] = pct
+        self.progress.set(pct / 100.0)
         self.card_keys.set_value(f"{cur:,}")
         self.card_kps.set_value(f"{kps:,.0f}")
         self.card_time.set_value(f"{elapsed:.1f}s")
@@ -213,7 +202,7 @@ class AttackTab(tk.Frame):
             result["percent_searched"], result["keys_per_second"], result["elapsed_seconds"],
         )
         if result["found"]:
-            self.progress["value"] = 100
+            self.progress.set(1.0)
             self.card_pct.set_value("100%")
             self.card_pct.set_accent(T.ACCENT_GREEN)
             self._log_success(result, bits)
