@@ -181,7 +181,8 @@ def brute_force_aes(
             (i, min(i + chunk_size, max_keys), key_bits, ciphertext, score_threshold, fast_mode)
             for i in range(0, max_keys, chunk_size)
         ]
-        with Pool(processes=safe_workers) as pool:
+        pool = Pool(processes=safe_workers)
+        try:
             for result in pool.imap_unordered(_bruteforce_worker, ranges):
                 if stop_flag is not None and stop_flag.is_set():
                     pool.terminate()
@@ -196,7 +197,13 @@ def brute_force_aes(
                         k: result[k] for k in ("key_int", "key_hex", "key_full_hex", "plaintext", "plaintext_score")
                     })
                     result.pop("keys_tested", None)
+                    result.pop("found", None)
                     return _make_result(True, keys_tested=keys_tested, **result)
+        finally:
+            # We explicitly DO NOT call pool.join() here.
+            # On Windows, calling pool.join() from a child thread after pool.terminate()
+            # can cause a deadlock if the pool's internal queues are still full.
+            pool.terminate()
 
         _emit("exhausted", current=keys_tested, keys_tested=keys_tested)
         return _make_result(False)
