@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aes-brute-force"
+version = "2.0.0"
+description = "Educational AES-128 brute-force demonstration with pure-Python AES and GUI"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [{name = "nnam099"}]
+keywords = ["aes", "brute-force", "cryptography", "education"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Topic :: Security :: Cryptography",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+]
+dependencies = [
+    "matplotlib>=3.7.0",
+]
+
+[project.optional-dependencies]
+fast = ["pycryptodome>=3.19.0"]
+dev = [
+    "pytest>=7.0.0",
+    "pycryptodome>=3.19.0",
+    "ruff>=0.4.0",
+]
+
+[project.scripts]
+aes-brute-force = "aes_brute_force.cli.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]
+ignore = ["E501"]
