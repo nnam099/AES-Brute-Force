@@ -3,7 +3,6 @@ Reusable stat-card widget.
 """
 
 from __future__ import annotations
-
 import customtkinter as ctk
 
 from aes_brute_force.gui import theme as T
@@ -19,19 +18,19 @@ class StatCard(ctk.CTkFrame):
         value: str = "—",
         accent: str = T.ACCENT_BLUE,
     ) -> None:
-        super().__init__(parent, corner_radius=8)
+        super().__init__(parent, corner_radius=12, fg_color=T.BG_SURFACE)
 
         self._title = ctk.CTkLabel(
-            self, text=title.upper(), font=("Segoe UI", 11, "bold"),
-            text_color="gray", anchor="w",
+            self, text=title.upper(), font=("Segoe UI", 12, "bold"),
+            text_color=T.FG_SUBTEXT, anchor="w",
         )
-        self._title.pack(fill="x", padx=16, pady=(12, 0))
+        self._title.pack(fill="x", padx=20, pady=(15, 0))
 
         self._value = ctk.CTkLabel(
-            self, text=value, font=("Consolas", 24, "bold"),
+            self, text=value, font=("Consolas", 28, "bold"),
             text_color=accent, anchor="w",
         )
-        self._value.pack(fill="x", padx=16, pady=(0, 12))
+        self._value.pack(fill="x", padx=20, pady=(0, 15))
 
     def set_value(self, value: str) -> None:
         self._value.configure(text=value)
@@ -51,19 +50,19 @@ class SidebarButton(ctk.CTkFrame):
         command,
         active: bool = False,
     ) -> None:
-        super().__init__(parent, fg_color="transparent", corner_radius=6, cursor="hand2")
+        super().__init__(parent, fg_color="transparent", corner_radius=8, cursor="hand2")
         self._command = command
         self._active = active
 
         self._icon = ctk.CTkLabel(
-            self, text=icon, font=("Segoe UI", 18),
-            text_color=T.ACCENT_BLUE if active else "gray",
+            self, text=icon, font=("Segoe UI", 20),
+            text_color=T.ACCENT_BLUE if active else T.FG_SUBTEXT,
         )
-        self._icon.pack(side="left", padx=(12, 8), pady=8)
+        self._icon.pack(side="left", padx=(15, 10), pady=10)
 
         self._label = ctk.CTkLabel(
-            self, text=label, font=("Segoe UI", 13, "bold" if active else "normal"),
-            text_color="white" if active else "gray", anchor="w",
+            self, text=label, font=("Segoe UI", 14, "bold" if active else "normal"),
+            text_color=T.FG_TEXT if active else T.FG_SUBTEXT, anchor="w",
         )
         self._label.pack(side="left", fill="x", expand=True)
 
@@ -76,16 +75,16 @@ class SidebarButton(ctk.CTkFrame):
 
     def set_active(self, active: bool) -> None:
         self._active = active
-        self.configure(fg_color=("gray75", "gray25") if active else "transparent")
-        self._icon.configure(text_color=T.ACCENT_BLUE if active else "gray")
+        self.configure(fg_color=T.BG_OVERLAY if active else "transparent")
+        self._icon.configure(text_color=T.ACCENT_BLUE if active else T.FG_SUBTEXT)
         self._label.configure(
-            text_color="white" if active else "gray",
-            font=("Segoe UI", 13, "bold" if active else "normal")
+            text_color=T.FG_TEXT if active else T.FG_SUBTEXT,
+            font=("Segoe UI", 14, "bold" if active else "normal")
         )
 
     def _on_enter(self, _event) -> None:
         if not self._active:
-            self.configure(fg_color=("gray85", "gray20"))
+            self.configure(fg_color=T.BG_OVERLAY)
 
     def _on_leave(self, _event) -> None:
         if not self._active:
