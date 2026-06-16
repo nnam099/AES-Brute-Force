@@ -37,10 +37,10 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 
 def _run_gui() -> None:
-    import tkinter as tk
+    import customtkinter as ctk
     from aes_brute_force.gui.app import AESBruteForceApp
 
-    root = tk.Tk()
+    root = ctk.CTk()
     AESBruteForceApp(root)
     root.update_idletasks()
     w, h = 960, 720
