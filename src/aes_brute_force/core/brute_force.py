@@ -195,6 +195,7 @@ def brute_force_aes(
                     _emit("found", current=keys_tested, **{
                         k: result[k] for k in ("key_int", "key_hex", "key_full_hex", "plaintext", "plaintext_score")
                     })
+                    result.pop("keys_tested", None)
                     return _make_result(True, keys_tested=keys_tested, **result)
 
         _emit("exhausted", current=keys_tested, keys_tested=keys_tested)

@@ -22,13 +22,13 @@ class EncryptTab(tk.Frame):
         inp = tk.Frame(self, bg=T.BG_BASE, padx=20, pady=12)
         inp.pack(fill=tk.X)
 
-        T.make_label(inp, "Bản rõ:").grid(row=0, column=0, sticky="w", pady=6, padx=(0, 10))
+        T.make_label(inp, "Nội dung cần mã hóa:").grid(row=0, column=0, sticky="w", pady=6, padx=(0, 10))
         self.plaintext_entry = T.make_entry(inp, width=54)
         self.plaintext_entry.insert(0, "HELLO WORLD")
         self.plaintext_entry.grid(row=0, column=1, sticky="ew", pady=6)
         inp.columnconfigure(1, weight=1)
 
-        T.make_label(inp, "Key bits:").grid(row=1, column=0, sticky="w", pady=6, padx=(0, 10))
+        T.make_label(inp, "Độ dài khóa bí mật:").grid(row=1, column=0, sticky="w", pady=6, padx=(0, 10))
         self.key_bits_var = tk.IntVar(value=16)
         kf = tk.Frame(inp, bg=T.BG_OVERLAY, padx=8, pady=4)
         kf.grid(row=1, column=1, sticky="w", pady=6)
@@ -74,9 +74,9 @@ class EncryptTab(tk.Frame):
         # ── Buttons ──
         btns = tk.Frame(self, bg=T.BG_BASE, padx=20)
         btns.pack(fill=tk.X, pady=(0, 8))
-        T.make_button(btns, "🔒 Mã hóa", self._encrypt, T.ACCENT_BLUE).pack(side=tk.LEFT, padx=(0, 8))
-        T.make_button(btns, "🔓 Giải mã", self._decrypt, T.ACCENT_GREEN).pack(side=tk.LEFT, padx=(0, 8))
-        T.make_button(btns, "Xóa", self._clear, T.BG_OVERLAY, T.FG_TEXT).pack(side=tk.LEFT)
+        T.make_button(btns, "🔒 Bắt đầu mã hóa", self._encrypt, T.ACCENT_BLUE).pack(side=tk.LEFT, padx=(0, 10))
+        T.make_button(btns, "🔓 Kiểm tra giải mã", self._decrypt, T.ACCENT_GREEN).pack(side=tk.LEFT, padx=(0, 10))
+        T.make_button(btns, "Xóa toàn bộ", self._clear, T.BG_OVERLAY, T.FG_TEXT).pack(side=tk.LEFT)
 
         # ── Output ──
         out = tk.Frame(self, bg=T.BG_BASE, padx=20)

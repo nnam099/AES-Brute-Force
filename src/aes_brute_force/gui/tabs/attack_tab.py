@@ -32,8 +32,8 @@ class AttackTab(tk.Frame):
 
         # Ciphertext input
         ct_frame = tk.Frame(top, bg=T.BG_BASE)
-        ct_frame.pack(fill=tk.X, pady=(0, 8))
-        T.make_label(ct_frame, "Bản mã (hex):").pack(side=tk.LEFT, padx=(0, 10))
+        ct_frame.pack(fill=tk.X, pady=(0, 12))
+        T.make_label(ct_frame, "Dữ liệu cần giải mã (Ciphertext):").pack(side=tk.LEFT, padx=(0, 15))
         self.cipher_display = T.make_scrolled_text(
             ct_frame, height=2, width=60, font=T.FONT_MONO_SM,
             borderwidth=6, wrap=tk.WORD,
@@ -42,8 +42,8 @@ class AttackTab(tk.Frame):
 
         # Key bits selector
         bits_frame = tk.Frame(top, bg=T.BG_BASE)
-        bits_frame.pack(fill=tk.X, pady=(0, 4))
-        T.make_label(bits_frame, "Số bit bí mật:").pack(side=tk.LEFT, padx=(0, 10))
+        bits_frame.pack(fill=tk.X, pady=(0, 8))
+        T.make_label(bits_frame, "Độ dài khóa bí mật (Entropy):").pack(side=tk.LEFT, padx=(0, 15))
         self.key_bits_var = tk.IntVar(value=16)
         kf = tk.Frame(bits_frame, bg=T.BG_OVERLAY, padx=8, pady=4)
         kf.pack(side=tk.LEFT)
@@ -85,11 +85,11 @@ class AttackTab(tk.Frame):
 
         # ── Action buttons ──
         actions = tk.Frame(self, bg=T.BG_BASE, padx=20)
-        actions.pack(fill=tk.X, pady=(0, 8))
+        actions.pack(fill=tk.X, pady=(0, 12))
 
-        self.btn_start = T.make_button(actions, "▶ Bắt đầu", self._start, T.ACCENT_GREEN, T.FG_DARK)
-        self.btn_start.pack(side=tk.LEFT, padx=(0, 8))
-        self.btn_stop = T.make_button(actions, "■ Dừng", self._stop, T.ACCENT_RED, T.FG_DARK)
+        self.btn_start = T.make_button(actions, "▶ Khởi chạy", self._start, T.ACCENT_GREEN, T.FG_DARK)
+        self.btn_start.pack(side=tk.LEFT, padx=(0, 10))
+        self.btn_stop = T.make_button(actions, "■ Dừng lại", self._stop, T.ACCENT_RED, T.FG_DARK)
         self.btn_stop.pack(side=tk.LEFT, padx=(0, 8))
         self.btn_stop.configure(state=tk.DISABLED)
 

@@ -47,32 +47,32 @@ class AESBruteForceApp:
         sidebar.pack_propagate(False)
 
         # App title in sidebar
-        title_frame = tk.Frame(sidebar, bg="#181825", pady=14, padx=12)
+        title_frame = tk.Frame(sidebar, bg=T.BG_SURFACE, pady=16, padx=12)
         title_frame.pack(fill=tk.X)
-        tk.Label(title_frame, text="🔐 AES", font=("Segoe UI", 14, "bold"),
-                 bg="#181825", fg=T.ACCENT_BLUE).pack(anchor="w")
-        tk.Label(title_frame, text="Brute-Force Demo", font=("Segoe UI", 9),
-                 bg="#181825", fg=T.FG_SUBTEXT).pack(anchor="w")
+        tk.Label(title_frame, text="🔐 AES Demo", font=("Segoe UI", 16, "bold"),
+                 bg=T.BG_SURFACE, fg=T.ACCENT_BLUE).pack(anchor="w")
+        tk.Label(title_frame, text="Minh họa vét cạn khóa", font=("Segoe UI", 9),
+                 bg=T.BG_SURFACE, fg=T.FG_SUBTEXT).pack(anchor="w")
 
-        tk.Frame(sidebar, bg=T.BG_OVERLAY, height=1).pack(fill=tk.X)
+        tk.Frame(sidebar, bg=T.BG_OVERLAY, height=1).pack(fill=tk.X, pady=(0, 10))
 
         # Navigation buttons
         nav_items = [
-            ("encrypt", "🔒", "Mã hóa"),
-            ("attack", "⚡", "Vét cạn"),
-            ("theory", "📖", "Lý thuyết"),
+            ("encrypt", "🔒", "Mã hóa & Giải mã"),
+            ("attack", "⚡", "Vét cạn (Brute-force)"),
+            ("theory", "📖", "Góc lý thuyết"),
         ]
         for key, icon, label in nav_items:
             btn = SidebarButton(sidebar, icon, label,
                                 command=lambda k=key: self._show_page(k),
                                 active=(key == "encrypt"))
-            btn.pack(fill=tk.X, pady=(1, 0))
+            btn.pack(fill=tk.X, pady=(2, 2), padx=8)
             self._buttons[key] = btn
 
         # Version label at bottom of sidebar
-        tk.Label(sidebar, text="v2.0.0", font=("Segoe UI", 8),
+        tk.Label(sidebar, text="Phiên bản 2.0.0", font=("Segoe UI", 8),
                  bg=T.BG_SURFACE, fg=T.FG_SUBTEXT).pack(side=tk.BOTTOM, pady=10)
-        tk.Label(sidebar, text="Đồ án Mật mã học", font=("Segoe UI", 8),
+        tk.Label(sidebar, text="Đồ án môn Mật mã học", font=("Segoe UI", 8),
                  bg=T.BG_SURFACE, fg=T.FG_SUBTEXT).pack(side=tk.BOTTOM)
 
         # ── Right side: header + content + status ──
@@ -80,22 +80,22 @@ class AESBruteForceApp:
         right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         # Header
-        hdr = tk.Frame(right, bg="#181825", pady=10, padx=20)
+        hdr = tk.Frame(right, bg=T.BG_BASE, pady=20, padx=30)
         hdr.pack(fill=tk.X)
-        self._header_title = tk.Label(hdr, text="🔒  Mã hóa / Giải mã",
-                                       font=("Segoe UI", 13, "bold"),
-                                       bg="#181825", fg=T.FG_TEXT)
+        self._header_title = tk.Label(hdr, text="Mã hóa / Giải mã",
+                                       font=("Segoe UI", 18, "bold"),
+                                       bg=T.BG_BASE, fg=T.FG_TEXT)
         self._header_title.pack(side=tk.LEFT)
-        self._header_sub = tk.Label(hdr, text="Mã hóa plaintext với khóa entropy thấp",
-                                     font=("Segoe UI", 9),
-                                     bg="#181825", fg=T.FG_SUBTEXT)
-        self._header_sub.pack(side=tk.LEFT, padx=(16, 0))
+        self._header_sub = tk.Label(hdr, text="•  Tạo bản mã từ dữ liệu bí mật",
+                                     font=("Segoe UI", 10),
+                                     bg=T.BG_BASE, fg=T.FG_SUBTEXT)
+        self._header_sub.pack(side=tk.LEFT, padx=(16, 0), pady=(6, 0))
 
-        tk.Frame(right, bg=T.BG_OVERLAY, height=1).pack(fill=tk.X)
+        tk.Frame(right, bg=T.BG_OVERLAY, height=1).pack(fill=tk.X, padx=30)
 
         # Page container
         self._container = tk.Frame(right, bg=T.BG_BASE)
-        self._container.pack(fill=tk.BOTH, expand=True)
+        self._container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         # Create pages
         self.encrypt_tab = EncryptTab(self._container, app=self)
@@ -109,12 +109,12 @@ class AESBruteForceApp:
         }
 
         # Status bar
-        status_bar = tk.Frame(right, bg="#181825")
+        status_bar = tk.Frame(right, bg=T.BG_OVERLAY)
         status_bar.pack(fill=tk.X, side=tk.BOTTOM)
         tk.Frame(status_bar, bg=T.ACCENT_GREEN, width=3).pack(side=tk.LEFT, fill=tk.Y)
         tk.Label(status_bar, textvariable=self.status_var,
-                 font=("Consolas", 9), bg="#181825", fg=T.ACCENT_GREEN,
-                 anchor="w", padx=12, pady=5).pack(fill=tk.X)
+                 font=("Consolas", 9), bg=T.BG_OVERLAY, fg=T.ACCENT_GREEN,
+                 anchor="w", padx=12, pady=6).pack(fill=tk.X)
 
         # Show first page
         self._show_page("encrypt")
@@ -137,9 +137,9 @@ class AESBruteForceApp:
 
         # Update header
         headers = {
-            "encrypt": ("🔒  Mã hóa / Giải mã", "Mã hóa plaintext với khóa entropy thấp"),
-            "attack": ("⚡  Vét cạn khóa", "Thử toàn bộ không gian khóa 2ⁿ"),
-            "theory": ("📖  Lý thuyết", "Ghi chú về AES và vét cạn"),
+            "encrypt": ("Mã hóa / Giải mã", "•  Tạo bản mã từ dữ liệu bí mật"),
+            "attack": ("Vét cạn khóa", "•  Mô phỏng tấn công bằng sức mạnh tính toán"),
+            "theory": ("Góc lý thuyết", "•  Tìm hiểu về AES và không gian khóa"),
         }
         title, sub = headers.get(key, ("", ""))
         self._header_title.configure(text=title)
