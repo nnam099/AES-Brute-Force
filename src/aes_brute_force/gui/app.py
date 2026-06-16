@@ -22,8 +22,9 @@ class AESBruteForceApp:
     def __init__(self, root: ctk.CTk) -> None:
         self.root = root
         self.root.title("AES Brute-Force Demo")
-        self.root.geometry("1060x740")
-        self.root.minsize(800, 600)
+        self.root.geometry("1100x780")
+        self.root.minsize(900, 650)
+        self.root.configure(fg_color=T.BG_BASE)
 
         # Shared state
         self.shared_ciphertext: Optional[bytes] = None
@@ -39,15 +40,15 @@ class AESBruteForceApp:
 
     def _build(self) -> None:
         # ── Sidebar ──
-        sidebar = ctk.CTkFrame(self.root, width=220, corner_radius=0)
+        sidebar = ctk.CTkFrame(self.root, width=250, corner_radius=0, fg_color=T.BG_SURFACE)
         sidebar.pack(side="left", fill="y")
         sidebar.pack_propagate(False)
 
         # App title in sidebar
         title_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
-        title_frame.pack(fill="x", pady=(20, 10), padx=20)
+        title_frame.pack(fill="x", pady=(30, 20), padx=20)
         ctk.CTkLabel(title_frame, text="🔐 AES Demo", font=T.FONT_HEADING, text_color=T.ACCENT_BLUE).pack(anchor="w")
-        ctk.CTkLabel(title_frame, text="Minh họa vét cạn khóa", font=T.FONT_SUBHEADING).pack(anchor="w")
+        ctk.CTkLabel(title_frame, text="Minh họa vét cạn khóa", font=T.FONT_SUBHEADING, text_color=T.FG_SUBTEXT).pack(anchor="w")
 
         # Navigation buttons
         nav_items = [
@@ -57,17 +58,17 @@ class AESBruteForceApp:
         ]
         
         btn_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
-        btn_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        btn_frame.pack(fill="both", expand=True, padx=15, pady=10)
         
         for key, icon, label in nav_items:
             btn = SidebarButton(btn_frame, icon, label,
                                 command=lambda k=key: self._show_page(k),
                                 active=(key == "encrypt"))
-            btn.pack(fill="x", pady=(2, 2))
+            btn.pack(fill="x", pady=(4, 4))
             self._buttons[key] = btn
 
         # Version label at bottom of sidebar
-        ctk.CTkLabel(sidebar, text="Phiên bản 2.0.0\nĐồ án môn Mật mã học", font=("Segoe UI", 11), justify="center", text_color="gray").pack(side="bottom", pady=20)
+        ctk.CTkLabel(sidebar, text="Phiên bản 2.0.0\nĐồ án môn Mật mã học", font=("Segoe UI", 12), justify="center", text_color=T.FG_SUBTEXT).pack(side="bottom", pady=25)
 
         # ── Right side: header + content + status ──
         right = ctk.CTkFrame(self.root, fg_color="transparent", corner_radius=0)
@@ -75,15 +76,15 @@ class AESBruteForceApp:
 
         # Header
         hdr = ctk.CTkFrame(right, fg_color="transparent", corner_radius=0)
-        hdr.pack(fill="x", pady=20, padx=30)
-        self._header_title = ctk.CTkLabel(hdr, text="Mã hóa / Giải mã", font=T.FONT_HEADING)
+        hdr.pack(fill="x", pady=(30, 15), padx=40)
+        self._header_title = ctk.CTkLabel(hdr, text="Mã hóa / Giải mã", font=T.FONT_HEADING, text_color=T.FG_TEXT)
         self._header_title.pack(side="left")
-        self._header_sub = ctk.CTkLabel(hdr, text="•  Tạo bản mã từ dữ liệu bí mật", font=T.FONT_SUBHEADING, text_color="gray")
+        self._header_sub = ctk.CTkLabel(hdr, text="•  Tạo bản mã từ dữ liệu bí mật", font=T.FONT_SUBHEADING, text_color=T.FG_SUBTEXT)
         self._header_sub.pack(side="left", padx=(16, 0), pady=(6, 0))
 
         # Page container
         self._container = ctk.CTkFrame(right, fg_color="transparent")
-        self._container.pack(fill="both", expand=True, padx=20, pady=(0, 10))
+        self._container.pack(fill="both", expand=True, padx=30, pady=(0, 15))
 
         # Create pages
         self.encrypt_tab = EncryptTab(self._container, app=self)
@@ -97,10 +98,10 @@ class AESBruteForceApp:
         }
 
         # Status bar
-        status_bar = ctk.CTkFrame(right, height=30, corner_radius=0)
+        status_bar = ctk.CTkFrame(right, height=35, corner_radius=0, fg_color=T.BG_SURFACE)
         status_bar.pack(fill="x", side="bottom")
         status_bar.pack_propagate(False)
-        ctk.CTkLabel(status_bar, textvariable=self.status_var, font=T.FONT_MONO_SM, text_color=T.ACCENT_GREEN).pack(side="left", padx=15)
+        ctk.CTkLabel(status_bar, textvariable=self.status_var, font=T.FONT_MONO_SM, text_color=T.ACCENT_GREEN).pack(side="left", padx=20)
 
         # Show first page
         self._show_page("encrypt")

@@ -20,64 +20,73 @@ class EncryptTab(ctk.CTkFrame):
 
     def _build(self) -> None:
         # ── Input section ──
-        inp = ctk.CTkFrame(self, fg_color="transparent")
-        inp.pack(fill="x", pady=12)
+        inp = ctk.CTkFrame(self, fg_color=T.BG_SURFACE, corner_radius=12)
+        inp.pack(fill="x", pady=(0, 20))
 
-        ctk.CTkLabel(inp, text="Nội dung cần mã hóa:", font=T.FONT_LABEL).grid(row=0, column=0, sticky="w", pady=6, padx=(0, 10))
-        self.plaintext_entry = ctk.CTkEntry(inp, width=450, font=T.FONT_MONO)
+        # Inner padding for input section
+        inp_inner = ctk.CTkFrame(inp, fg_color="transparent")
+        inp_inner.pack(fill="both", expand=True, padx=25, pady=25)
+
+        ctk.CTkLabel(inp_inner, text="Nội dung cần mã hóa:", font=T.FONT_LABEL, text_color=T.FG_TEXT).grid(row=0, column=0, sticky="w", pady=10, padx=(0, 20))
+        self.plaintext_entry = ctk.CTkEntry(inp_inner, width=500, font=T.FONT_MONO, fg_color=T.BG_BASE, border_width=0, height=35)
         self.plaintext_entry.insert(0, "HELLO WORLD")
-        self.plaintext_entry.grid(row=0, column=1, sticky="ew", pady=6)
-        inp.columnconfigure(1, weight=1)
+        self.plaintext_entry.grid(row=0, column=1, sticky="ew", pady=10)
+        inp_inner.columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(inp, text="Độ dài khóa bí mật:", font=T.FONT_LABEL).grid(row=1, column=0, sticky="w", pady=6, padx=(0, 10))
+        ctk.CTkLabel(inp_inner, text="Độ dài khóa bí mật:", font=T.FONT_LABEL, text_color=T.FG_TEXT).grid(row=1, column=0, sticky="w", pady=10, padx=(0, 20))
         self.key_bits_var = tk.IntVar(value=16)
-        kf = ctk.CTkFrame(inp, fg_color="transparent")
-        kf.grid(row=1, column=1, sticky="w", pady=6)
+        kf = ctk.CTkFrame(inp_inner, fg_color="transparent")
+        kf.grid(row=1, column=1, sticky="w", pady=10)
         for v in [8, 12, 16, 20, 24, 32]:
             ctk.CTkRadioButton(
                 kf, text=f"{v} bit", variable=self.key_bits_var, value=v,
-                font=T.FONT_BODY, fg_color=T.ACCENT_BLUE, hover_color=T.ACCENT_BLUE
-            ).pack(side="left", padx=(0, 15))
+                font=T.FONT_BODY, text_color=T.FG_SUBTEXT,
+                fg_color=T.ACCENT_BLUE, hover_color=T.ACCENT_BLUE
+            ).pack(side="left", padx=(0, 20))
 
-        ctk.CTkLabel(inp, text="Khóa cố định:", font=T.FONT_LABEL).grid(row=2, column=0, sticky="w", pady=6, padx=(0, 10))
-        fk = ctk.CTkFrame(inp, fg_color="transparent")
-        fk.grid(row=2, column=1, sticky="w", pady=6)
+        ctk.CTkLabel(inp_inner, text="Khóa cố định:", font=T.FONT_LABEL, text_color=T.FG_TEXT).grid(row=2, column=0, sticky="w", pady=10, padx=(0, 20))
+        fk = ctk.CTkFrame(inp_inner, fg_color="transparent")
+        fk.grid(row=2, column=1, sticky="w", pady=10)
         self.use_fixed_key = tk.BooleanVar(value=False)
         ctk.CTkCheckBox(
-            fk, text="Bật", variable=self.use_fixed_key, font=T.FONT_BODY,
+            fk, text="Bật", variable=self.use_fixed_key, font=T.FONT_BODY, text_color=T.FG_SUBTEXT,
             fg_color=T.ACCENT_BLUE, hover_color=T.ACCENT_BLUE
-        ).pack(side="left", padx=(0, 10))
-        self.key_int_entry = ctk.CTkEntry(fk, width=150, font=T.FONT_MONO)
+        ).pack(side="left", padx=(0, 15))
+        self.key_int_entry = ctk.CTkEntry(fk, width=150, font=T.FONT_MONO, fg_color=T.BG_BASE, border_width=0, height=35)
         self.key_int_entry.insert(0, "142")
-        self.key_int_entry.pack(side="left", padx=8)
-        ctk.CTkLabel(fk, text="(e.g. 142 or 0x8E)", font=T.FONT_SUBHEADING, text_color="gray").pack(side="left")
+        self.key_int_entry.pack(side="left", padx=10)
+        ctk.CTkLabel(fk, text="(e.g. 142 or 0x8E)", font=T.FONT_SUBHEADING, text_color=T.FG_SUBTEXT).pack(side="left")
 
         # ── Info cards ──
         cards = ctk.CTkFrame(self, fg_color="transparent")
-        cards.pack(fill="x", pady=(0, 8))
+        cards.pack(fill="x", pady=(0, 20))
 
         self.card_keyspace = StatCard(cards, "Không gian khóa", "2¹⁶ = 65,536", T.ACCENT_BLUE)
-        self.card_keyspace.pack(side="left", fill="x", expand=True, padx=(0, 6))
+        self.card_keyspace.pack(side="left", fill="x", expand=True, padx=(0, 10))
         self.card_key_val = StatCard(cards, "Khóa sử dụng", "—", T.ACCENT_GREEN)
-        self.card_key_val.pack(side="left", fill="x", expand=True, padx=3)
+        self.card_key_val.pack(side="left", fill="x", expand=True, padx=5)
         self.card_ct_len = StatCard(cards, "Ciphertext", "—", T.ACCENT_PEACH)
-        self.card_ct_len.pack(side="left", fill="x", expand=True, padx=(6, 0))
+        self.card_ct_len.pack(side="left", fill="x", expand=True, padx=(10, 0))
 
         # Update keyspace card when bits change
         self.key_bits_var.trace_add("write", self._on_bits_change)
 
         # ── Buttons ──
         btns = ctk.CTkFrame(self, fg_color="transparent")
-        btns.pack(fill="x", pady=(10, 10))
-        ctk.CTkButton(btns, text="🔒 Bắt đầu mã hóa", command=self._encrypt, fg_color=T.ACCENT_BLUE, font=T.FONT_BTN, text_color="white").pack(side="left", padx=(0, 10))
-        ctk.CTkButton(btns, text="🔓 Kiểm tra giải mã", command=self._decrypt, fg_color=T.ACCENT_GREEN, font=T.FONT_BTN, text_color="white").pack(side="left", padx=(0, 10))
-        ctk.CTkButton(btns, text="Xóa toàn bộ", command=self._clear, fg_color="gray", hover_color="darkgray", font=T.FONT_BTN, text_color="white").pack(side="left")
+        btns.pack(fill="x", pady=(0, 20))
+        ctk.CTkButton(btns, text="🔒 Bắt đầu mã hóa", command=self._encrypt, fg_color=T.ACCENT_BLUE, hover_color=T.ACCENT_MAUVE, font=T.FONT_BTN, text_color=T.BG_BASE, height=40).pack(side="left", padx=(0, 15))
+        ctk.CTkButton(btns, text="🔓 Kiểm tra giải mã", command=self._decrypt, fg_color=T.ACCENT_GREEN, hover_color="#8FCE8A", font=T.FONT_BTN, text_color=T.BG_BASE, height=40).pack(side="left", padx=(0, 15))
+        ctk.CTkButton(btns, text="Xóa toàn bộ", command=self._clear, fg_color=T.BG_OVERLAY, hover_color=T.BG_SURFACE, font=T.FONT_BTN, text_color=T.FG_TEXT, height=40).pack(side="left")
 
         # ── Output ──
-        out = ctk.CTkFrame(self, fg_color="transparent")
-        out.pack(fill="both", expand=True, pady=(0, 12))
-        ctk.CTkLabel(out, text="Kết quả:", font=T.FONT_LABEL).pack(anchor="w", pady=(0, 4))
-        self.output = ctk.CTkTextbox(out, font=T.FONT_MONO, border_width=2)
+        out = ctk.CTkFrame(self, fg_color=T.BG_SURFACE, corner_radius=12)
+        out.pack(fill="both", expand=True)
+        
+        out_inner = ctk.CTkFrame(out, fg_color="transparent")
+        out_inner.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        ctk.CTkLabel(out_inner, text="Kết quả:", font=T.FONT_LABEL, text_color=T.FG_TEXT).pack(anchor="w", pady=(0, 10))
+        self.output = ctk.CTkTextbox(out_inner, font=T.FONT_MONO, fg_color=T.BG_BASE, text_color=T.FG_TEXT, border_width=0)
         self.output.pack(fill="both", expand=True)
 
     def _on_bits_change(self, *_args) -> None:

@@ -28,77 +28,86 @@ class AttackTab(ctk.CTkFrame):
 
     def _build(self) -> None:
         # ── Top config section ──
-        top = ctk.CTkFrame(self, fg_color="transparent")
-        top.pack(fill="x", pady=12)
+        top = ctk.CTkFrame(self, fg_color=T.BG_SURFACE, corner_radius=12)
+        top.pack(fill="x", pady=(0, 20))
+
+        # Inner padding for input section
+        top_inner = ctk.CTkFrame(top, fg_color="transparent")
+        top_inner.pack(fill="both", expand=True, padx=25, pady=25)
 
         # Ciphertext input
-        ct_frame = ctk.CTkFrame(top, fg_color="transparent")
-        ct_frame.pack(fill="x", pady=(0, 12))
-        ctk.CTkLabel(ct_frame, text="Dữ liệu cần giải mã (Ciphertext):", font=T.FONT_LABEL).pack(side="left", padx=(0, 15))
-        self.cipher_display = ctk.CTkTextbox(ct_frame, height=50, width=500, font=T.FONT_MONO_SM, border_width=2)
+        ct_frame = ctk.CTkFrame(top_inner, fg_color="transparent")
+        ct_frame.pack(fill="x", pady=(0, 15))
+        ctk.CTkLabel(ct_frame, text="Dữ liệu cần giải mã (Ciphertext):", font=T.FONT_LABEL, text_color=T.FG_TEXT).pack(side="left", padx=(0, 20))
+        self.cipher_display = ctk.CTkTextbox(ct_frame, height=50, width=500, font=T.FONT_MONO_SM, fg_color=T.BG_BASE, border_width=0)
         self.cipher_display.pack(side="left", fill="x", expand=True)
 
         # Key bits selector
-        bits_frame = ctk.CTkFrame(top, fg_color="transparent")
-        bits_frame.pack(fill="x", pady=(0, 8))
-        ctk.CTkLabel(bits_frame, text="Độ dài khóa bí mật (Entropy):", font=T.FONT_LABEL).pack(side="left", padx=(0, 15))
+        bits_frame = ctk.CTkFrame(top_inner, fg_color="transparent")
+        bits_frame.pack(fill="x", pady=(0, 10))
+        ctk.CTkLabel(bits_frame, text="Độ dài khóa bí mật (Entropy):", font=T.FONT_LABEL, text_color=T.FG_TEXT).pack(side="left", padx=(0, 20))
         self.key_bits_var = tk.IntVar(value=16)
         kf = ctk.CTkFrame(bits_frame, fg_color="transparent")
         kf.pack(side="left")
         for v in [8, 12, 16, 20, 24]:
             ctk.CTkRadioButton(
                 kf, text=str(v), variable=self.key_bits_var, value=v,
-                font=T.FONT_BODY, fg_color=T.ACCENT_BLUE, hover_color=T.ACCENT_BLUE
+                font=T.FONT_BODY, text_color=T.FG_SUBTEXT,
+                fg_color=T.ACCENT_BLUE, hover_color=T.ACCENT_BLUE
             ).pack(side="left", padx=(0, 15))
-        ctk.CTkLabel(kf, text="bit", font=T.FONT_BODY, text_color="gray").pack(side="left", padx=(2, 6))
+        ctk.CTkLabel(kf, text="bit", font=T.FONT_BODY, text_color=T.FG_SUBTEXT).pack(side="left", padx=(2, 6))
 
         # ── Stats dashboard (card row) ──
         cards_frame = ctk.CTkFrame(self, fg_color="transparent")
-        cards_frame.pack(fill="x", pady=(4, 8))
+        cards_frame.pack(fill="x", pady=(0, 20))
 
         self.card_keys = StatCard(cards_frame, "Khóa đã thử", "0", T.ACCENT_GREEN)
-        self.card_keys.pack(side="left", fill="x", expand=True, padx=(0, 6))
+        self.card_keys.pack(side="left", fill="x", expand=True, padx=(0, 10))
 
         self.card_kps = StatCard(cards_frame, "Khóa / giây", "—", T.ACCENT_BLUE)
-        self.card_kps.pack(side="left", fill="x", expand=True, padx=3)
+        self.card_kps.pack(side="left", fill="x", expand=True, padx=5)
 
         self.card_time = StatCard(cards_frame, "Thời gian", "0.0s", T.ACCENT_PEACH)
-        self.card_time.pack(side="left", fill="x", expand=True, padx=3)
+        self.card_time.pack(side="left", fill="x", expand=True, padx=5)
 
         self.card_pct = StatCard(cards_frame, "Tiến trình", "0%", T.ACCENT_MAUVE)
-        self.card_pct.pack(side="left", fill="x", expand=True, padx=(6, 0))
+        self.card_pct.pack(side="left", fill="x", expand=True, padx=(10, 0))
 
         # ── Progress bar ──
         prog = ctk.CTkFrame(self, fg_color="transparent")
-        prog.pack(fill="x", pady=(0, 8))
-        self.progress = ctk.CTkProgressBar(prog, height=8, progress_color=T.ACCENT_GREEN)
+        prog.pack(fill="x", pady=(0, 15))
+        self.progress = ctk.CTkProgressBar(prog, height=10, progress_color=T.ACCENT_GREEN, fg_color=T.BG_SURFACE)
         self.progress.pack(fill="x")
         self.progress.set(0)
 
         # ── Action buttons ──
         actions = ctk.CTkFrame(self, fg_color="transparent")
-        actions.pack(fill="x", pady=(0, 12))
+        actions.pack(fill="x", pady=(0, 20))
 
-        self.btn_start = ctk.CTkButton(actions, text="▶ Khởi chạy", command=self._start, fg_color=T.ACCENT_GREEN, font=T.FONT_BTN, text_color="white")
-        self.btn_start.pack(side="left", padx=(0, 10))
-        self.btn_stop = ctk.CTkButton(actions, text="■ Dừng lại", command=self._stop, fg_color=T.ACCENT_RED, font=T.FONT_BTN, text_color="white", state="disabled")
-        self.btn_stop.pack(side="left", padx=(0, 8))
+        self.btn_start = ctk.CTkButton(actions, text="▶ Khởi chạy", command=self._start, fg_color=T.ACCENT_GREEN, hover_color="#8FCE8A", font=T.FONT_BTN, text_color=T.BG_BASE, height=40)
+        self.btn_start.pack(side="left", padx=(0, 15))
+        self.btn_stop = ctk.CTkButton(actions, text="■ Dừng lại", command=self._stop, fg_color=T.ACCENT_RED, hover_color="#F07195", font=T.FONT_BTN, text_color=T.BG_BASE, state="disabled", height=40)
+        self.btn_stop.pack(side="left", padx=(0, 15))
 
         ctk.CTkCheckBox(
-            actions, text="PyCryptodome", variable=self.fast_mode, font=T.FONT_BODY,
+            actions, text="PyCryptodome", variable=self.fast_mode, font=T.FONT_BODY, text_color=T.FG_SUBTEXT,
             fg_color=T.ACCENT_GREEN, hover_color=T.ACCENT_GREEN
-        ).pack(side="left", padx=(12, 0))
+        ).pack(side="left", padx=(15, 0))
         ctk.CTkCheckBox(
-            actions, text="Log chi tiết", variable=self.verbose_log, font=T.FONT_BODY,
+            actions, text="Log chi tiết", variable=self.verbose_log, font=T.FONT_BODY, text_color=T.FG_SUBTEXT,
             fg_color=T.ACCENT_BLUE, hover_color=T.ACCENT_BLUE
-        ).pack(side="left", padx=(12, 0))
-        ctk.CTkButton(actions, text="Xóa log", command=self._clear, fg_color="gray", hover_color="darkgray", font=T.FONT_BTN, text_color="white", width=80).pack(side="right")
+        ).pack(side="left", padx=(15, 0))
+        ctk.CTkButton(actions, text="Xóa log", command=self._clear, fg_color=T.BG_OVERLAY, hover_color=T.BG_SURFACE, font=T.FONT_BTN, text_color=T.FG_TEXT, width=100, height=40).pack(side="right")
 
         # ── Log ──
-        log_frame = ctk.CTkFrame(self, fg_color="transparent")
-        log_frame.pack(fill="both", expand=True, pady=(0, 12))
-        ctk.CTkLabel(log_frame, text="Nhật ký:", font=T.FONT_LABEL).pack(anchor="w", pady=(0, 4))
-        self.log = ctk.CTkTextbox(log_frame, font=T.FONT_MONO, border_width=2)
+        log_frame = ctk.CTkFrame(self, fg_color=T.BG_SURFACE, corner_radius=12)
+        log_frame.pack(fill="both", expand=True)
+        
+        log_inner = ctk.CTkFrame(log_frame, fg_color="transparent")
+        log_inner.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        ctk.CTkLabel(log_inner, text="Nhật ký:", font=T.FONT_LABEL, text_color=T.FG_TEXT).pack(anchor="w", pady=(0, 10))
+        self.log = ctk.CTkTextbox(log_inner, font=T.FONT_MONO, fg_color=T.BG_BASE, text_color=T.FG_TEXT, border_width=0)
         self.log.pack(fill="both", expand=True)
 
     # ── Public ──────────────────────────────────────
