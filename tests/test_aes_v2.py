@@ -257,3 +257,52 @@ class TestEdgeCases(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main(verbosity=2)
 
+
+# ── Security Tests ────────────────────────────────────────
+
+class TestSecurity(unittest.TestCase):
+    """Verify security hardening introduced in the review fixes."""
+
+    def test_unpad_valid_padding(self):
+        """unpad must return correct data for valid PKCS#7 padding."""
+        padded = b"A" + bytes([15] * 15)
+        self.assertEqual(unpad(padded), b"A")
+
+    def test_unpad_rejects_wrong_byte(self):
+        """unpad must reject padding where one byte differs (timing-safe path).
+
+        Construct a 16-byte block where pad_len=2 (last byte=0x02), but the
+        second-to-last byte is 0x01 instead of 0x02 — so the expected padding
+        [0x02, 0x02] does not match [0x01, 0x02].
+        """
+        # 14 bytes of data + 0x01 + 0x02 → pad_len=2, expected=[2,2], actual=[1,2]
+        bad = bytes([0xAA] * 14) + bytes([0x01, 0x02])
+        with self.assertRaises(ValueError):
+            unpad(bad)
+
+
+    def test_pure_aes_key_zeroize(self):
+        """PureAES.clear() must overwrite the internal key buffer with zeros."""
+        key = bytes(range(16))
+        cipher = PureAES(key)
+        cipher.clear()
+        self.assertEqual(bytes(cipher._key_buf), bytes(16))
+
+    def test_pure_aes_nist_after_refactor(self):
+        """PureAES with bytearray key buf must still pass FIPS-197 Appendix B."""
+        key = bytes.fromhex("2b7e151628aed2a6abf7158809cf4f3c")
+        pt = bytes.fromhex("3243f6a8885a308d313198a2e0370734")
+        expected = bytes.fromhex("3925841d02dc09fbdc118597196a0b32")
+        self.assertEqual(PureAES(key).encrypt(pt), expected)
+
+    def test_pure_aes_key_buf_independent_of_schedule(self):
+        """key_schedule is pre-expanded from original key, independent of key_buf.
+        This documents expected behavior: clear() zeroes the buffer but the
+        pre-expanded schedule (used for encrypt/decrypt) remains intact."""
+        key = bytes.fromhex("2b7e151628aed2a6abf7158809cf4f3c")
+        cipher = PureAES(key)
+        cipher.clear()
+        self.assertEqual(bytes(cipher._key_buf), bytes(16))
+        # key_schedule still valid — encrypt should not raise
+        pt = bytes.fromhex("3243f6a8885a308d313198a2e0370734")
+        self.assertEqual(len(cipher.encrypt(pt)), 16)

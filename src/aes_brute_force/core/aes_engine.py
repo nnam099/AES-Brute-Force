@@ -6,11 +6,23 @@ SubBytes, ShiftRows, MixColumns over GF(2^8), AddRoundKey, and KeyExpansion.
 
 For the brute-force demo the key is always 16 bytes but only the leading
 *n* bits carry entropy; the rest is zero-padded.
+
+⚠️  SECURITY NOTICE
+-------------------
+This module uses AES-128 in **ECB mode** without authentication.
+ECB mode is deterministic and unauthenticated:
+  - Same plaintext block → same ciphertext block (pattern leakage).
+  - No integrity protection (ciphertext can be silently tampered).
+For real-world use, choose AES-GCM or AES-CBC with HMAC via
+a vetted library (e.g. ``cryptography.hazmat``).
+This implementation is for **educational purposes only**.
 """
 
 from __future__ import annotations
 
+import hmac
 import os
+import warnings
 from typing import Optional, Tuple
 
 from aes_brute_force.core.constants import (
@@ -216,13 +228,20 @@ def pad(data: bytes, block_size: int = AES_BLOCK_SIZE) -> bytes:
 
 
 def unpad(data: bytes, block_size: int = AES_BLOCK_SIZE) -> bytes:
-    """Remove and validate PKCS#7 padding."""
+    """Remove and validate PKCS#7 padding using a constant-time comparison.
+
+    Uses ``hmac.compare_digest`` to prevent timing side-channel attacks that
+    could leak padding information when this function is called in a loop
+    (e.g., during brute-force decryption).
+    """
     if not data:
         raise ValueError("Empty data.")
     pad_len = data[-1]
     if pad_len < 1 or pad_len > block_size:
         raise ValueError("Invalid padding length.")
-    if data[-pad_len:] != bytes([pad_len] * pad_len):
+    # Constant-time comparison — avoids timing oracle on padding bytes.
+    expected = bytes([pad_len] * pad_len)
+    if not hmac.compare_digest(data[-pad_len:], expected):
         raise ValueError("Invalid padding bytes.")
     return data[:-pad_len]
 
@@ -232,14 +251,41 @@ def unpad(data: bytes, block_size: int = AES_BLOCK_SIZE) -> bytes:
 # ---------------------------------------------------------------------------
 
 class PureAES:
-    """AES-128 ECB cipher using pure-Python internals."""
+    """AES-128 ECB cipher using pure-Python internals.
+
+    .. warning::
+        ECB mode provides no semantic security — identical plaintext blocks
+        produce identical ciphertext blocks.  Use this class for educational
+        demonstrations only, never for production data.
+    """
 
     def __init__(self, key: bytes) -> None:
         if len(key) != AES_KEY_SIZE:
             raise ValueError(f"Key must be {AES_KEY_SIZE} bytes (AES-128).")
-        self.key_schedule = key_expansion(key)
+        # Store a mutable copy so we can zero-out the key material on cleanup.
+        self._key_buf: bytearray = bytearray(key)
+        self.key_schedule = key_expansion(bytes(self._key_buf))
+
+    def clear(self) -> None:
+        """Overwrite the in-memory key buffer with zeros.
+
+        Call this when the cipher object is no longer needed to reduce the
+        window during which key material lives in the process address space.
+        Note: Python's garbage collector does not guarantee prompt reclamation,
+        so this is a best-effort mitigation, not a cryptographic guarantee.
+        """
+        for i in range(len(self._key_buf)):
+            self._key_buf[i] = 0
+
+    def __del__(self) -> None:
+        """Attempt to zeroize key material on object destruction."""
+        try:
+            self.clear()
+        except Exception:  # noqa: BLE001
+            pass
 
     def encrypt(self, data: bytes) -> bytes:
+        """Encrypt *data* with AES-128 ECB (educational use only)."""
         if len(data) % AES_BLOCK_SIZE != 0:
             raise ValueError("Plaintext length must be a multiple of 16.")
         out = b""
@@ -248,6 +294,7 @@ class PureAES:
         return out
 
     def decrypt(self, data: bytes) -> bytes:
+        """Decrypt *data* with AES-128 ECB."""
         if len(data) % AES_BLOCK_SIZE != 0:
             raise ValueError("Ciphertext length must be a multiple of 16.")
         out = b""
