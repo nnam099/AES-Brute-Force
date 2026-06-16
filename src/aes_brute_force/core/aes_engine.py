@@ -49,6 +49,25 @@ def multiply(x: int, y: int) -> int:
 
 
 # ---------------------------------------------------------------------------
+# Precomputed GF(2^8) multiplication tables for InvMixColumns
+#
+# InvMixColumns uses multiply-by-{09, 0B, 0D, 0E} on every column of every
+# round during decryption.  With 9 rounds × 4 columns × 16 multiply() calls
+# = 576 calls per block, each running an 8-iteration loop.  Replacing them
+# with O(1) table lookups is the single biggest speedup for PureAES.
+# ---------------------------------------------------------------------------
+
+def _build_mul_table(constant: int) -> tuple[int, ...]:
+    """Precompute multiply(a, constant) for a in [0..255]."""
+    return tuple(multiply(a, constant) for a in range(256))
+
+_MUL_09: tuple[int, ...] = _build_mul_table(0x09)
+_MUL_0B: tuple[int, ...] = _build_mul_table(0x0B)
+_MUL_0D: tuple[int, ...] = _build_mul_table(0x0D)
+_MUL_0E: tuple[int, ...] = _build_mul_table(0x0E)
+
+
+# ---------------------------------------------------------------------------
 # State helpers (column-major: state[col][row])
 # ---------------------------------------------------------------------------
 
@@ -124,11 +143,12 @@ def mix_columns(state: list[list[int]]) -> None:
 
 
 def _inv_mix_column(a: list[int]) -> None:
-    u = multiply(a[0], 0x0E) ^ multiply(a[1], 0x0B) ^ multiply(a[2], 0x0D) ^ multiply(a[3], 0x09)
-    v = multiply(a[0], 0x09) ^ multiply(a[1], 0x0E) ^ multiply(a[2], 0x0B) ^ multiply(a[3], 0x0D)
-    w = multiply(a[0], 0x0D) ^ multiply(a[1], 0x09) ^ multiply(a[2], 0x0E) ^ multiply(a[3], 0x0B)
-    x = multiply(a[0], 0x0B) ^ multiply(a[1], 0x0D) ^ multiply(a[2], 0x09) ^ multiply(a[3], 0x0E)
-    a[0], a[1], a[2], a[3] = u, v, w, x
+    # Table lookups instead of 16 × multiply() calls (each with 8-iter loop).
+    a0, a1, a2, a3 = a[0], a[1], a[2], a[3]
+    a[0] = _MUL_0E[a0] ^ _MUL_0B[a1] ^ _MUL_0D[a2] ^ _MUL_09[a3]
+    a[1] = _MUL_09[a0] ^ _MUL_0E[a1] ^ _MUL_0B[a2] ^ _MUL_0D[a3]
+    a[2] = _MUL_0D[a0] ^ _MUL_09[a1] ^ _MUL_0E[a2] ^ _MUL_0B[a3]
+    a[3] = _MUL_0B[a0] ^ _MUL_0D[a1] ^ _MUL_09[a2] ^ _MUL_0E[a3]
 
 
 def inv_mix_columns(state: list[list[int]]) -> None:
