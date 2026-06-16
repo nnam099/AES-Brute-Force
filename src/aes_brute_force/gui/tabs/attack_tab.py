@@ -9,6 +9,7 @@ import tkinter as tk
 from tkinter import messagebox
 import customtkinter as ctk
 
+from aes_brute_force.core.constants import SUPPORTED_KEY_BITS
 from aes_brute_force.gui import theme as T
 from aes_brute_force.gui.widgets.stat_card import StatCard
 
@@ -49,7 +50,7 @@ class AttackTab(ctk.CTkFrame):
         self.key_bits_var = tk.IntVar(value=16)
         kf = ctk.CTkFrame(bits_frame, fg_color="transparent")
         kf.pack(side="left")
-        for v in [8, 12, 16, 20, 24]:
+        for v in SUPPORTED_KEY_BITS:
             ctk.CTkRadioButton(
                 kf, text=str(v), variable=self.key_bits_var, value=v,
                 font=T.FONT_BODY, text_color=T.FG_SUBTEXT,
@@ -145,6 +146,9 @@ class AttackTab(ctk.CTkFrame):
         if ct is None:
             messagebox.showwarning("Cảnh báo", "Nhập bản mã hex hợp lệ!")
             return
+        if len(ct) == 0 or len(ct) % 16 != 0:
+            messagebox.showwarning("Cảnh báo", f"Bản mã phải là bội số của 16 bytes (hiện tại: {len(ct)} bytes)!")
+            return
 
         # Reset UI
         self.log.delete("1.0", tk.END)
@@ -154,11 +158,18 @@ class AttackTab(ctk.CTkFrame):
         self.card_pct.set_value("0%")
         self._log_start(bits, ct)
 
+        def _safe_after(fn, *args) -> None:
+            """Schedule a UI callback safely — swallows TclError if widget destroyed."""
+            try:
+                self.winfo_toplevel().after(0, fn, *args)
+            except tk.TclError:
+                pass
+
         def run():
             def cb(cur, total, elapsed):
                 pct = cur / total * 100
                 kps = cur / elapsed if elapsed > 0 else 0
-                self.winfo_toplevel().after(0, self._update_stats, cur, total, pct, kps, elapsed)
+                _safe_after(self._update_stats, cur, total, pct, kps, elapsed)
 
             def detail_cb(ev):
                 if not self.verbose_log.get():
@@ -167,14 +178,16 @@ class AttackTab(ctk.CTkFrame):
                 now = time.time()
                 if always or (now - self._last_log_time >= 0.1):
                     self._last_log_time = now
-                    self.winfo_toplevel().after(0, self._log_detail, ev)
+                    _safe_after(self._log_detail, ev)
 
+            # Use at most (cpu_count - 1) workers to avoid freezing the OS.
+            safe_workers = max(1, (multiprocessing.cpu_count() or 2) - 1)
             result = brute_force_aes(
                 ct, bits, callback=cb, detail_callback=detail_cb,
-                stop_flag=self._stop_flag, workers=multiprocessing.cpu_count(),
+                stop_flag=self._stop_flag, workers=safe_workers,
                 detail_interval=self._detail_interval(bits), fast_mode=self.fast_mode.get(),
             )
-            self.winfo_toplevel().after(0, self._on_done, result, bits)
+            _safe_after(self._on_done, result, bits)
 
         self._bf_thread = threading.Thread(target=run, daemon=True)
         self._bf_thread.start()

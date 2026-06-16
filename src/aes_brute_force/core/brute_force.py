@@ -122,7 +122,14 @@ def brute_force_aes(
     """Try all ``2^key_bits`` keys and return the first valid match."""
     validate_key_bits(key_bits)
 
-    # FIX: Fail fast instead of raising ImportError on every iteration.
+    # Validate ciphertext: must be non-empty and a multiple of the AES block size.
+    if not ciphertext or len(ciphertext) % AES_BLOCK_SIZE != 0:
+        raise ValueError(
+            f"ciphertext must be a non-empty multiple of {AES_BLOCK_SIZE} bytes, "
+            f"got {len(ciphertext)} bytes."
+        )
+
+    # Fail fast instead of raising ImportError on every iteration.
     if fast_mode and not _PYCRYPTODOME_OK:
         raise ImportError(
             "pycryptodome is required for fast mode: pip install pycryptodome"
@@ -133,6 +140,9 @@ def brute_force_aes(
     start_time = time.time()
     keys_tested = 0
     update_interval = max(1, min(100_000, max_keys // 100))
+    # Adaptive chunk: avoid excessive IPC overhead for small keyspaces.
+    if chunk_size == 10_000:
+        chunk_size = max(256, min(chunk_size, max_keys // max(workers, 1)))
     if detail_interval is None:
         detail_interval = max(1, min(10_000, max_keys // 200))
 

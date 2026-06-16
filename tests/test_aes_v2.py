@@ -167,5 +167,93 @@ class TestBenchmark(unittest.TestCase):
         self.assertIsNone(data)
 
 
+# ── Edge Case Tests ───────────────────────────────────────
+
+class TestEdgeCases(unittest.TestCase):
+    """Edge cases and boundary conditions found in code review."""
+
+    # --- AES edge cases ---
+
+    def test_key_int_zero(self):
+        """key_int=0 (all-zero key) must encrypt and decrypt correctly."""
+        key = key_int_to_bytes(0, 8)
+        ct, _, ki = encrypt_aes("ZERO", 8, key=key)
+        self.assertEqual(ki, 0)
+        self.assertEqual(decrypt_aes(ct, key), "ZERO")
+
+    def test_key_int_max(self):
+        """key_int=2^n-1 (max key) must encrypt and decrypt correctly."""
+        key = key_int_to_bytes(0xFF, 8)
+        ct, _, ki = encrypt_aes("MAX", 8, key=key)
+        self.assertEqual(ki, 0xFF)
+        self.assertEqual(decrypt_aes(ct, key), "MAX")
+
+    def test_unpad_invalid_padding_bytes(self):
+        """unpad should raise ValueError on malformed PKCS#7 padding."""
+        bad = bytes(15) + b"\x02"   # claims pad=2 but only 1 pad byte matches
+        with self.assertRaises(ValueError):
+            unpad(bad)
+
+    def test_unpad_empty(self):
+        """unpad should raise ValueError on empty input."""
+        with self.assertRaises(ValueError):
+            unpad(b"")
+
+    def test_pad_unpad_roundtrip(self):
+        """pad then unpad must be identity for various lengths."""
+        import pytest
+        for n in [1, 15, 16, 17, 31, 32]:
+            data = bytes(range(n % 256)) * (n // 256 + 1)
+            data = data[:n]
+            self.assertEqual(unpad(pad(data)), data)
+
+    # --- Brute-force edge cases ---
+
+    def test_bf_invalid_ciphertext_empty(self):
+        """brute_force_aes must raise ValueError on empty ciphertext."""
+        with self.assertRaises(ValueError):
+            brute_force_aes(b"", 8)
+
+    def test_bf_invalid_ciphertext_wrong_length(self):
+        """brute_force_aes must raise ValueError when len % 16 != 0."""
+        with self.assertRaises(ValueError):
+            brute_force_aes(b"\x00" * 15, 8)
+
+    def test_bf_key_int_zero(self):
+        """Brute-force must find key_int=0 (first key tried)."""
+        key = key_int_to_bytes(0, 8)
+        ct, _, ki = encrypt_aes("HELLO", 8, key=key)
+        result = brute_force_aes(ct, 8)
+        self.assertTrue(result["found"])
+        self.assertEqual(result["key_int"], 0)
+
+    def test_bf_stop_flag_terminates(self):
+        """stop_flag.set() must terminate brute-force before exhaustion."""
+        import threading
+        ct, _, _ = encrypt_aes("TEST", 16)
+        stop = threading.Event()
+        stop.set()   # set immediately — should stop after first check
+        result = brute_force_aes(ct, 16, stop_flag=stop)
+        # Either stopped early (not found) or found key=0 on first try
+        self.assertIn("keys_tested", result)
+        self.assertLess(result["keys_tested"], 65536)
+
+    # --- Parametrize-style round-trips ---
+
+    def test_roundtrip_parametrized(self):
+        """Round-trip for multiple (text, bits) combinations."""
+        cases = [
+            ("A", 8),
+            ("Hello World", 12),
+            ("0123456789ABCDEF", 16),
+            ("x" * 100, 8),
+        ]
+        for text, bits in cases:
+            with self.subTest(text=text[:20], bits=bits):
+                ct, key, _ = encrypt_aes(text, bits)
+                self.assertEqual(decrypt_aes(ct, key), text)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+

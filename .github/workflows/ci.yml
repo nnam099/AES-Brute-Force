@@ -28,7 +28,7 @@ jobs:
         run: ruff check src/ tests/
 
       - name: Test
-        run: pytest tests/test_aes_v2.py -v --tb=short
+        run: pytest tests/test_aes_v2.py -v --tb=short --cov=aes_brute_force --cov-report=term-missing
 
   lint:
     runs-on: ubuntu-latest
