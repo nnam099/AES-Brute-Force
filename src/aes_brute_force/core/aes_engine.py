@@ -1,3 +1,9 @@
+"""
+aes_engine.py - AES Encryption/Decryption Engine
+Thuần túy học thuật (Từ Scratch). Không sử dụng PyCryptodome.
+Minh họa AES với khóa ngắn được pad thành 16 bytes.
+"""
+
 from __future__ import annotations
 
 import hmac
