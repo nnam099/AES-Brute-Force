@@ -13,25 +13,25 @@ CustomTkinter Premium Theme setup (Catppuccin Mocha inspired).
 
 import customtkinter as ctk
 
-# Configure global CTk settings
+
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
 
-# Premium Dark Palette (Catppuccin Mocha)
-BG_BASE = "#1E1E2E"        # Main background
-BG_SURFACE = "#181825"     # Sidebar and cards
-BG_OVERLAY = "#313244"     # Hover and secondary elements
 
-ACCENT_GREEN = "#A6E3A1"   # Success / Go
-ACCENT_RED = "#F38BA8"     # Danger / Stop
-ACCENT_PEACH = "#FAB387"   # Warnings / Time
-ACCENT_BLUE = "#89B4FA"    # Brand / Primary
-ACCENT_MAUVE = "#CBA6F7"   # Progress / Accent
+BG_BASE = "#1E1E2E"
+BG_SURFACE = "#181825"
+BG_OVERLAY = "#313244"
 
-FG_TEXT = "#CDD6F4"        # Main text
-FG_SUBTEXT = "#BAC2DE"     # Sub text
+ACCENT_GREEN = "#A6E3A1"
+ACCENT_RED = "#F38BA8"
+ACCENT_PEACH = "#FAB387"
+ACCENT_BLUE = "#89B4FA"
+ACCENT_MAUVE = "#CBA6F7"
 
-# Fonts
+FG_TEXT = "#CDD6F4"
+FG_SUBTEXT = "#BAC2DE"
+
+
 FONT_HEADING = ("Segoe UI", 24, "bold")
 FONT_SUBHEADING = ("Segoe UI", 12)
 FONT_LABEL = ("Segoe UI", 12, "bold")

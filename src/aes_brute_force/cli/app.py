@@ -29,8 +29,9 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     p.add_argument("--gui", action="store_true", help="Force GUI mode.")
     p.add_argument("--fast", action="store_true", help="Use PyCryptodome backend.")
     p.add_argument("--text", default="SECRET", help="Plaintext for CLI mode.")
-    p.add_argument("--bits", type=int, choices=SUPPORTED_KEY_BITS, default=16,
-                    help="Key entropy bits.")
+    p.add_argument(
+        "--bits", type=int, choices=SUPPORTED_KEY_BITS, default=16, help="Key entropy bits."
+    )
     p.add_argument("--workers", type=int, default=1, help="Number of processes.")
     p.add_argument("-v", "--verbose", action="store_true", help="Enable debug logging.")
     return p.parse_args(argv)
@@ -65,7 +66,7 @@ def _run_cli(text: str, bits: int, workers: int, fast: bool) -> None:
     print(f"  Ciphertext : {bytes_to_hex(ct)}")
     print(f"\n[Brute-force] Trying {2 ** bits:,} keys ...")
 
-    milestone = max(1, (2 ** bits) // 20)
+    milestone = max(1, (2**bits) // 20)
 
     def _cb(cur: int, total: int, elapsed: float) -> None:
         if cur % (milestone * 5) == 0 or cur == total:

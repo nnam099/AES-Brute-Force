@@ -37,9 +37,6 @@ from aes_brute_force.utils.logging import get_logger
 
 logger = get_logger("aes_engine")
 
-# ---------------------------------------------------------------------------
-# GF(2^8) arithmetic
-# ---------------------------------------------------------------------------
 
 def xtime(a: int) -> int:
     """Multiply by x (i.e. {02}) in GF(2^8)."""
@@ -60,28 +57,16 @@ def multiply(x: int, y: int) -> int:
     return result
 
 
-# ---------------------------------------------------------------------------
-# Precomputed GF(2^8) multiplication tables for InvMixColumns
-#
-# InvMixColumns uses multiply-by-{09, 0B, 0D, 0E} on every column of every
-# round during decryption.  With 9 rounds × 4 columns × 16 multiply() calls
-# = 576 calls per block, each running an 8-iteration loop.  Replacing them
-# with O(1) table lookups is the single biggest speedup for PureAES.
-# ---------------------------------------------------------------------------
-
 def _build_mul_table(constant: int) -> tuple[int, ...]:
     """Precompute multiply(a, constant) for a in [0..255]."""
     return tuple(multiply(a, constant) for a in range(256))
+
 
 _MUL_09: tuple[int, ...] = _build_mul_table(0x09)
 _MUL_0B: tuple[int, ...] = _build_mul_table(0x0B)
 _MUL_0D: tuple[int, ...] = _build_mul_table(0x0D)
 _MUL_0E: tuple[int, ...] = _build_mul_table(0x0E)
 
-
-# ---------------------------------------------------------------------------
-# State helpers (column-major: state[col][row])
-# ---------------------------------------------------------------------------
 
 def bytes2matrix(data: bytes) -> list[list[int]]:
     """Convert 16 bytes into a 4x4 column-major state matrix."""
@@ -92,10 +77,6 @@ def matrix2bytes(matrix: list[list[int]]) -> bytes:
     """Flatten a 4x4 state matrix back to 16 bytes."""
     return bytes(sum(matrix, []))
 
-
-# ---------------------------------------------------------------------------
-# AES round operations
-# ---------------------------------------------------------------------------
 
 def add_round_key(state: list[list[int]], key_schedule: list[list[int]], rnd: int) -> None:
     for c in range(4):
@@ -118,25 +99,43 @@ def inv_sub_bytes(state: list[list[int]]) -> None:
 def shift_rows(state: list[list[int]]) -> None:
     """Rotate left each row *r* by *r* positions (column-major convention)."""
     state[0][1], state[1][1], state[2][1], state[3][1] = (
-        state[1][1], state[2][1], state[3][1], state[0][1]
+        state[1][1],
+        state[2][1],
+        state[3][1],
+        state[0][1],
     )
     state[0][2], state[1][2], state[2][2], state[3][2] = (
-        state[2][2], state[3][2], state[0][2], state[1][2]
+        state[2][2],
+        state[3][2],
+        state[0][2],
+        state[1][2],
     )
     state[0][3], state[1][3], state[2][3], state[3][3] = (
-        state[3][3], state[0][3], state[1][3], state[2][3]
+        state[3][3],
+        state[0][3],
+        state[1][3],
+        state[2][3],
     )
 
 
 def inv_shift_rows(state: list[list[int]]) -> None:
     state[1][1], state[2][1], state[3][1], state[0][1] = (
-        state[0][1], state[1][1], state[2][1], state[3][1]
+        state[0][1],
+        state[1][1],
+        state[2][1],
+        state[3][1],
     )
     state[2][2], state[3][2], state[0][2], state[1][2] = (
-        state[0][2], state[1][2], state[2][2], state[3][2]
+        state[0][2],
+        state[1][2],
+        state[2][2],
+        state[3][2],
     )
     state[3][3], state[0][3], state[1][3], state[2][3] = (
-        state[0][3], state[1][3], state[2][3], state[3][3]
+        state[0][3],
+        state[1][3],
+        state[2][3],
+        state[3][3],
     )
 
 
@@ -155,7 +154,6 @@ def mix_columns(state: list[list[int]]) -> None:
 
 
 def _inv_mix_column(a: list[int]) -> None:
-    # Table lookups instead of 16 × multiply() calls (each with 8-iter loop).
     a0, a1, a2, a3 = a[0], a[1], a[2], a[3]
     a[0] = _MUL_0E[a0] ^ _MUL_0B[a1] ^ _MUL_0D[a2] ^ _MUL_09[a3]
     a[1] = _MUL_09[a0] ^ _MUL_0E[a1] ^ _MUL_0B[a2] ^ _MUL_0D[a3]
@@ -167,10 +165,6 @@ def inv_mix_columns(state: list[list[int]]) -> None:
     for col in state:
         _inv_mix_column(col)
 
-
-# ---------------------------------------------------------------------------
-# Key expansion
-# ---------------------------------------------------------------------------
 
 def key_expansion(key: bytes) -> list[list[int]]:
     """Expand 16-byte key into 44 round-key words for 10-round AES-128."""
@@ -184,10 +178,6 @@ def key_expansion(key: bytes) -> list[list[int]]:
         words.append([words[i - 4][r] ^ temp[r] for r in range(4)])
     return words
 
-
-# ---------------------------------------------------------------------------
-# Block encrypt / decrypt
-# ---------------------------------------------------------------------------
 
 def encrypt_block(plaintext: bytes, key_schedule: list[list[int]]) -> bytes:
     state = bytes2matrix(plaintext)
@@ -217,10 +207,6 @@ def decrypt_block(ciphertext: bytes, key_schedule: list[list[int]]) -> bytes:
     return matrix2bytes(state)
 
 
-# ---------------------------------------------------------------------------
-# PKCS#7 padding
-# ---------------------------------------------------------------------------
-
 def pad(data: bytes, block_size: int = AES_BLOCK_SIZE) -> bytes:
     """Apply PKCS#7 padding (always adds at least 1 byte)."""
     pad_len = block_size - (len(data) % block_size)
@@ -239,16 +225,12 @@ def unpad(data: bytes, block_size: int = AES_BLOCK_SIZE) -> bytes:
     pad_len = data[-1]
     if pad_len < 1 or pad_len > block_size:
         raise ValueError("Invalid padding length.")
-    # Constant-time comparison — avoids timing oracle on padding bytes.
+
     expected = bytes([pad_len] * pad_len)
     if not hmac.compare_digest(data[-pad_len:], expected):
         raise ValueError("Invalid padding bytes.")
     return data[:-pad_len]
 
-
-# ---------------------------------------------------------------------------
-# High-level PureAES class (ECB mode)
-# ---------------------------------------------------------------------------
 
 class PureAES:
     """AES-128 ECB cipher using pure-Python internals.
@@ -262,7 +244,7 @@ class PureAES:
     def __init__(self, key: bytes) -> None:
         if len(key) != AES_KEY_SIZE:
             raise ValueError(f"Key must be {AES_KEY_SIZE} bytes (AES-128).")
-        # Store a mutable copy so we can zero-out the key material on cleanup.
+
         self._key_buf: bytearray = bytearray(key)
         self.key_schedule = key_expansion(bytes(self._key_buf))
 
@@ -303,10 +285,6 @@ class PureAES:
         return out
 
 
-# ---------------------------------------------------------------------------
-# Demo key helpers
-# ---------------------------------------------------------------------------
-
 def generate_short_key(bits: int, key_int: Optional[int] = None) -> bytes:
     """Create a 16-byte AES key with only the leading *bits* carrying entropy."""
     validate_key_bits(bits)
@@ -328,10 +306,6 @@ def key_int_to_bytes(key_int: int, key_bits: int) -> bytes:
     key_bytes_len = (key_bits + 7) // 8
     return key_int.to_bytes(key_bytes_len, byteorder="big").ljust(AES_KEY_SIZE, b"\x00")
 
-
-# ---------------------------------------------------------------------------
-# Convenience wrappers
-# ---------------------------------------------------------------------------
 
 def encrypt_aes(
     plaintext: str,

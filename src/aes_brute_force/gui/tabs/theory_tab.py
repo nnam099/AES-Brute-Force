@@ -75,14 +75,16 @@ class TheoryTab(ctk.CTkFrame):
 
     def __init__(self, parent: ctk.CTkFrame, app=None) -> None:
         super().__init__(parent, fg_color="transparent")
-        
+
         card = ctk.CTkFrame(self, fg_color=T.BG_SURFACE, corner_radius=12)
         card.pack(fill="both", expand=True)
 
         card_inner = ctk.CTkFrame(card, fg_color="transparent")
         card_inner.pack(fill="both", expand=True, padx=30, pady=30)
-        
-        txt = ctk.CTkTextbox(card_inner, font=T.FONT_MONO, fg_color=T.BG_BASE, text_color=T.FG_TEXT, border_width=0)
+
+        txt = ctk.CTkTextbox(
+            card_inner, font=T.FONT_MONO, fg_color=T.BG_BASE, text_color=T.FG_TEXT, border_width=0
+        )
         txt.pack(fill="both", expand=True)
         txt.insert("1.0", _CONTENT)
         txt.configure(state="disabled")

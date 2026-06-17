@@ -22,8 +22,6 @@ from aes_brute_force.core.brute_force import brute_force_aes, estimate_time, is_
 from aes_brute_force.benchmark.runner import benchmark_key_length, parse_args, resolve_output_paths
 
 
-# ── AES Engine Tests ───────────────────────────────────────
-
 class TestAESEngine(unittest.TestCase):
     """Core encrypt / decrypt round-trips."""
 
@@ -50,7 +48,7 @@ class TestAESEngine(unittest.TestCase):
         self.assertEqual(r1, r2)
 
     def test_tc06_hex_roundtrip(self):
-        original = b"\xAB\xCD\xEF\x00"
+        original = b"\xab\xcd\xef\x00"
         self.assertEqual(hex_to_bytes(bytes_to_hex(original)), original)
 
     def test_tc07_wrong_key(self):
@@ -58,8 +56,6 @@ class TestAESEngine(unittest.TestCase):
         wrong = key_int_to_bytes(ki + 1, 16)
         self.assertNotEqual(decrypt_aes(ct, wrong), "SECRET")
 
-
-# ── NIST FIPS-197 Known Answer Tests ──────────────────────
 
 class TestNISTVectors(unittest.TestCase):
     """Validate against official NIST FIPS-197 test vectors."""
@@ -93,10 +89,7 @@ class TestNISTVectors(unittest.TestCase):
         self.assertEqual(PureAES(bytes(16)).encrypt(bytes(16)), expected)
 
 
-# ── Brute-Force Tests ─────────────────────────────────────
-
 class TestBruteForce(unittest.TestCase):
-
     def test_tc08_8bit(self):
         ct, key, ki = encrypt_aes("ABCDE", 8)
         result = brute_force_aes(ct, 8)
@@ -105,6 +98,7 @@ class TestBruteForce(unittest.TestCase):
 
     def test_tc09_12bit(self):
         import time
+
         ct, key, ki = encrypt_aes("HELLO", 12)
         t0 = time.time()
         result = brute_force_aes(ct, 12)
@@ -129,10 +123,7 @@ class TestBruteForce(unittest.TestCase):
             self.assertEqual(estimate_time(bits)["keyspace"], 2**bits)
 
 
-# ── Integration Tests ─────────────────────────────────────
-
 class TestIntegration(unittest.TestCase):
-
     def test_tc13_full_pipeline_8bit(self):
         ct, key, ki = encrypt_aes("SECRET", 8)
         result = brute_force_aes(ct, 8)
@@ -141,10 +132,7 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(result["plaintext"].strip(), "SECRET")
 
 
-# ── Benchmark Utility Tests ───────────────────────────────
-
 class TestBenchmark(unittest.TestCase):
-
     def test_tc14_hex_key_int(self):
         args = parse_args(["--bits", "8", "--key-int", "0x2A", "--no-plot", "--no-json"])
         self.assertEqual(args.key_int, 42)
@@ -167,12 +155,8 @@ class TestBenchmark(unittest.TestCase):
         self.assertIsNone(data)
 
 
-# ── Edge Case Tests ───────────────────────────────────────
-
 class TestEdgeCases(unittest.TestCase):
     """Edge cases and boundary conditions found in code review."""
-
-    # --- AES edge cases ---
 
     def test_key_int_zero(self):
         """key_int=0 (all-zero key) must encrypt and decrypt correctly."""
@@ -190,7 +174,7 @@ class TestEdgeCases(unittest.TestCase):
 
     def test_unpad_invalid_padding_bytes(self):
         """unpad should raise ValueError on malformed PKCS#7 padding."""
-        bad = bytes(15) + b"\x02"   # claims pad=2 but only 1 pad byte matches
+        bad = bytes(15) + b"\x02"
         with self.assertRaises(ValueError):
             unpad(bad)
 
@@ -202,12 +186,11 @@ class TestEdgeCases(unittest.TestCase):
     def test_pad_unpad_roundtrip(self):
         """pad then unpad must be identity for various lengths."""
         import pytest
+
         for n in [1, 15, 16, 17, 31, 32]:
             data = bytes(range(n % 256)) * (n // 256 + 1)
             data = data[:n]
             self.assertEqual(unpad(pad(data)), data)
-
-    # --- Brute-force edge cases ---
 
     def test_bf_invalid_ciphertext_empty(self):
         """brute_force_aes must raise ValueError on empty ciphertext."""
@@ -230,15 +213,14 @@ class TestEdgeCases(unittest.TestCase):
     def test_bf_stop_flag_terminates(self):
         """stop_flag.set() must terminate brute-force before exhaustion."""
         import threading
+
         ct, _, _ = encrypt_aes("TEST", 16)
         stop = threading.Event()
-        stop.set()   # set immediately — should stop after first check
+        stop.set()
         result = brute_force_aes(ct, 16, stop_flag=stop)
-        # Either stopped early (not found) or found key=0 on first try
+
         self.assertIn("keys_tested", result)
         self.assertLess(result["keys_tested"], 65536)
-
-    # --- Parametrize-style round-trips ---
 
     def test_roundtrip_parametrized(self):
         """Round-trip for multiple (text, bits) combinations."""
@@ -258,8 +240,6 @@ if __name__ == "__main__":
     unittest.main(verbosity=2)
 
 
-# ── Security Tests ────────────────────────────────────────
-
 class TestSecurity(unittest.TestCase):
     """Verify security hardening introduced in the review fixes."""
 
@@ -275,11 +255,10 @@ class TestSecurity(unittest.TestCase):
         second-to-last byte is 0x01 instead of 0x02 — so the expected padding
         [0x02, 0x02] does not match [0x01, 0x02].
         """
-        # 14 bytes of data + 0x01 + 0x02 → pad_len=2, expected=[2,2], actual=[1,2]
+
         bad = bytes([0xAA] * 14) + bytes([0x01, 0x02])
         with self.assertRaises(ValueError):
             unpad(bad)
-
 
     def test_pure_aes_key_zeroize(self):
         """PureAES.clear() must overwrite the internal key buffer with zeros."""
@@ -303,6 +282,6 @@ class TestSecurity(unittest.TestCase):
         cipher = PureAES(key)
         cipher.clear()
         self.assertEqual(bytes(cipher._key_buf), bytes(16))
-        # key_schedule still valid — encrypt should not raise
+
         pt = bytes.fromhex("3243f6a8885a308d313198a2e0370734")
         self.assertEqual(len(cipher.encrypt(pt)), 16)

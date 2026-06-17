@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Optional, Sequence
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.patches import Patch  # noqa: E402
@@ -95,8 +96,10 @@ def benchmark_key_length(
         "percent_searched": result["percent_searched"],
     }
     if verbose and result["found"]:
-        print(f"  Found key={result['key_int']} in {result['elapsed_seconds']:.3f}s "
-              f"({result['keys_per_second']:,.0f} keys/s)")
+        print(
+            f"  Found key={result['key_int']} in {result['elapsed_seconds']:.3f}s "
+            f"({result['keys_per_second']:,.0f} keys/s)"
+        )
     return rec
 
 
@@ -119,9 +122,11 @@ def run_all_benchmarks(
     print(f"\n{'Bits':>5} | {'Keyspace':>15} | {'Time':>10} | {'Keys/s':>12} | Result")
     print("-" * 65)
     for r in results:
-        print(f"{r['key_bits']:>5} | {r['keyspace']:>15,} | "
-              f"{r['elapsed_seconds']:>9.3f}s | {r['keys_per_second']:>12,.0f} | "
-              f"{'found' if r['found'] else 'not found'}")
+        print(
+            f"{r['key_bits']:>5} | {r['keyspace']:>15,} | "
+            f"{r['elapsed_seconds']:>9.3f}s | {r['keys_per_second']:>12,.0f} | "
+            f"{'found' if r['found'] else 'not found'}"
+        )
     return results
 
 
@@ -154,18 +159,24 @@ def plot_results(results: list[dict], save_path: str | None = None) -> str:
     ext_bits = list(range(8, 129, 8))
     ext_times = [(1 << b) / (2 * kps_avg) for b in ext_bits]
     colors = ["#2ecc71" if t < 60 else "#f39c12" if t < 3600 else "#e74c3c" for t in ext_times]
-    ax2.barh(ext_bits, [max(t, 0.001) for t in ext_times], color=colors, edgecolor="white", height=5)
+    ax2.barh(
+        ext_bits, [max(t, 0.001) for t in ext_times], color=colors, edgecolor="white", height=5
+    )
     ax2.set_xscale("log")
     ax2.set_xlabel("Average time (seconds, log)")
     ax2.set_ylabel("Key bits")
     ax2.set_title("Estimated Average Time")
     ax2.set_yticks(ext_bits)
     ax2.grid(True, axis="x", alpha=0.3)
-    ax2.legend(handles=[
-        Patch(facecolor="#2ecc71", label="< 1 min"),
-        Patch(facecolor="#f39c12", label="< 1 hour"),
-        Patch(facecolor="#e74c3c", label="> 1 hour"),
-    ], fontsize=9, loc="lower right")
+    ax2.legend(
+        handles=[
+            Patch(facecolor="#2ecc71", label="< 1 min"),
+            Patch(facecolor="#f39c12", label="< 1 hour"),
+            Patch(facecolor="#e74c3c", label="> 1 hour"),
+        ],
+        fontsize=9,
+        loc="lower right",
+    )
     ax2.axhline(y=128, color="purple", ls=":", lw=2, alpha=0.7)
 
     plt.tight_layout()
@@ -185,10 +196,13 @@ def save_json(results: list[dict], path: str | None = None) -> str:
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Benchmark AES brute-force speed",
-                                formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    p.add_argument("--bits", nargs="+", type=int, default=DEFAULT_KEY_BITS,
-                    choices=SUPPORTED_KEY_BITS)
+    p = argparse.ArgumentParser(
+        description="Benchmark AES brute-force speed",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    p.add_argument(
+        "--bits", nargs="+", type=int, default=DEFAULT_KEY_BITS, choices=SUPPORTED_KEY_BITS
+    )
     p.add_argument("--text", default="SECRET")
     p.add_argument("--workers", type=int, default=1)
     p.add_argument("--key-int", type=_parse_int, default=None)
@@ -204,8 +218,9 @@ def main(argv: Sequence[str] | None = None) -> None:
     configure_console()
     args = parse_args(argv)
     results = run_all_benchmarks(args.bits, args.text, args.workers, args.key_int)
-    chart, data = resolve_output_paths(args.output, args.json, args.output_dir,
-                                       args.no_plot, args.no_json)
+    chart, data = resolve_output_paths(
+        args.output, args.json, args.output_dir, args.no_plot, args.no_json
+    )
     if chart:
         plot_results(results, chart)
     if data:

@@ -30,7 +30,7 @@ from aes_brute_force.utils.logging import get_logger
 
 logger = get_logger("brute_force")
 
-# PyCryptodome (optional fast backend)
+
 try:
     from Crypto.Cipher import AES as _CryptoAES
 
@@ -42,10 +42,6 @@ except ImportError:
 CallbackType = Callable[[int, int, float], None]
 DetailCallbackType = Callable[[Dict[str, object]], None]
 
-
-# ---------------------------------------------------------------------------
-# Plaintext heuristics
-# ---------------------------------------------------------------------------
 
 def is_valid_plaintext(data: bytes) -> bool:
     """Return ``True`` if *data* consists of printable ASCII + whitespace."""
@@ -61,10 +57,6 @@ def score_plaintext(data: bytes) -> float:
     printable = sum(1 for b in data if 32 <= b <= 126 or b in (9, 10, 13))
     return printable / len(data)
 
-
-# ---------------------------------------------------------------------------
-# Multiprocessing worker
-# ---------------------------------------------------------------------------
 
 def _bruteforce_worker(args: Tuple[int, int, int, bytes, float, bool]) -> Dict[str, object]:
     """Scan key range ``[start, end)`` — used by ``Pool.imap_unordered``."""
@@ -103,10 +95,6 @@ def _bruteforce_worker(args: Tuple[int, int, int, bytes, float, bool]) -> Dict[s
     return {"found": False, "keys_tested": end - start}
 
 
-# ---------------------------------------------------------------------------
-# Main brute-force entry point
-# ---------------------------------------------------------------------------
-
 def brute_force_aes(
     ciphertext: bytes,
     key_bits: int,
@@ -122,25 +110,21 @@ def brute_force_aes(
     """Try all ``2^key_bits`` keys and return the first valid match."""
     validate_key_bits(key_bits)
 
-    # Validate ciphertext: must be non-empty and a multiple of the AES block size.
     if not ciphertext or len(ciphertext) % AES_BLOCK_SIZE != 0:
         raise ValueError(
             f"ciphertext must be a non-empty multiple of {AES_BLOCK_SIZE} bytes, "
             f"got {len(ciphertext)} bytes."
         )
 
-    # Fail fast instead of raising ImportError on every iteration.
     if fast_mode and not _PYCRYPTODOME_OK:
-        raise ImportError(
-            "pycryptodome is required for fast mode: pip install pycryptodome"
-        )
+        raise ImportError("pycryptodome is required for fast mode: pip install pycryptodome")
 
     max_keys = 1 << key_bits
     key_bytes_len = (key_bits + 7) // 8
     start_time = time.time()
     keys_tested = 0
     update_interval = max(1, min(100_000, max_keys // 100))
-    # Adaptive chunk: avoid excessive IPC overhead for small keyspaces.
+
     if chunk_size == 10_000:
         chunk_size = max(256, min(chunk_size, max_keys // max(workers, 1)))
     if detail_interval is None:
@@ -153,14 +137,16 @@ def brute_force_aes(
         if detail_callback is None:
             return
         current = int(payload.get("current", keys_tested) or 0)
-        detail_callback({
-            "event": event,
-            "current": current,
-            "total": max_keys,
-            "elapsed": _elapsed(),
-            "percent": (current / max_keys) * 100 if max_keys else 0.0,
-            **payload,
-        })
+        detail_callback(
+            {
+                "event": event,
+                "current": current,
+                "total": max_keys,
+                "elapsed": _elapsed(),
+                "percent": (current / max_keys) * 100 if max_keys else 0.0,
+                **payload,
+            }
+        )
 
     def _make_result(found: bool, **kw: object) -> Dict[str, object]:
         elapsed = _elapsed()
@@ -180,11 +166,16 @@ def brute_force_aes(
             "percent_searched": (tested / max_keys) * 100 if max_keys else 100.0,
         }
 
-    # --- Multiprocessing path ---
     if workers > 1:
         logger.info("Starting multiprocessing brute force (%d workers, %d-bit)", workers, key_bits)
-        _emit("start", workers=workers, key_bits=key_bits, keyspace=max_keys,
-              mode="multiprocessing", fast_mode=fast_mode)
+        _emit(
+            "start",
+            workers=workers,
+            key_bits=key_bits,
+            keyspace=max_keys,
+            mode="multiprocessing",
+            fast_mode=fast_mode,
+        )
 
         safe_workers = max(1, min(workers, cpu_count() or 1))
         ranges = [
@@ -200,29 +191,46 @@ def brute_force_aes(
                 keys_tested += result.get("keys_tested", 0)
                 if callback is not None:
                     callback(keys_tested, max_keys, _elapsed())
-                _emit("chunk_done", current=keys_tested, keys_tested=keys_tested, workers=safe_workers)
+                _emit(
+                    "chunk_done", current=keys_tested, keys_tested=keys_tested, workers=safe_workers
+                )
                 if result.get("found"):
                     pool.terminate()
-                    _emit("found", current=keys_tested, **{
-                        k: result[k] for k in ("key_int", "key_hex", "key_full_hex", "plaintext", "plaintext_score")
-                    })
+                    _emit(
+                        "found",
+                        current=keys_tested,
+                        **{
+                            k: result[k]
+                            for k in (
+                                "key_int",
+                                "key_hex",
+                                "key_full_hex",
+                                "plaintext",
+                                "plaintext_score",
+                            )
+                        },
+                    )
                     result.pop("keys_tested", None)
                     result.pop("found", None)
                     return _make_result(True, keys_tested=keys_tested, **result)
         finally:
-            # We explicitly DO NOT call pool.join() here.
-            # On Windows, calling pool.join() from a child thread after pool.terminate()
-            # can cause a deadlock if the pool's internal queues are still full.
             pool.terminate()
 
         _emit("exhausted", current=keys_tested, keys_tested=keys_tested)
         return _make_result(False)
 
-    # --- Sequential path ---
     logger.info("Starting sequential brute force (%d-bit, keyspace=%d)", key_bits, max_keys)
-    _emit("start", current=0, workers=1, key_bits=key_bits, keyspace=max_keys,
-          key_bytes_len=key_bytes_len, score_threshold=score_threshold,
-          mode="sequential", fast_mode=fast_mode)
+    _emit(
+        "start",
+        current=0,
+        workers=1,
+        key_bits=key_bits,
+        keyspace=max_keys,
+        key_bytes_len=key_bytes_len,
+        score_threshold=score_threshold,
+        mode="sequential",
+        fast_mode=fast_mode,
+    )
 
     for i in range(max_keys):
         if stop_flag is not None and stop_flag.is_set():
@@ -235,8 +243,13 @@ def brute_force_aes(
         key_hex = key_part.hex().upper()
 
         if detail_callback is not None and (i == 0 or current % detail_interval == 0):
-            _emit("trying", current=current, key_int=i, key_hex=key_hex,
-                  key_full_hex=key.hex().upper())
+            _emit(
+                "trying",
+                current=current,
+                key_int=i,
+                key_hex=key_hex,
+                key_full_hex=key.hex().upper(),
+            )
 
         try:
             if fast_mode:
@@ -251,17 +264,36 @@ def brute_force_aes(
 
             score = score_plaintext(unpadded)
             preview = unpadded[:80].decode("utf-8", errors="replace")
-            _emit("padding_valid", current=current, key_int=i, key_hex=key_hex,
-                  plaintext_preview=preview, plaintext_score=score)
+            _emit(
+                "padding_valid",
+                current=current,
+                key_int=i,
+                key_hex=key_hex,
+                plaintext_preview=preview,
+                plaintext_score=score,
+            )
 
             if score >= score_threshold:
                 try:
                     plaintext = unpadded.decode("utf-8")
-                    _emit("found", current=current, key_int=i, key_hex=key_hex,
-                          key_full_hex=key.hex().upper(), plaintext=plaintext, plaintext_score=score)
-                    return _make_result(True, key_int=i, key_hex=key_hex,
-                                        key_full_hex=key.hex().upper(), plaintext=plaintext,
-                                        plaintext_score=score, keys_tested=current)
+                    _emit(
+                        "found",
+                        current=current,
+                        key_int=i,
+                        key_hex=key_hex,
+                        key_full_hex=key.hex().upper(),
+                        plaintext=plaintext,
+                        plaintext_score=score,
+                    )
+                    return _make_result(
+                        True,
+                        key_int=i,
+                        key_hex=key_hex,
+                        key_full_hex=key.hex().upper(),
+                        plaintext=plaintext,
+                        plaintext_score=score,
+                        keys_tested=current,
+                    )
                 except UnicodeDecodeError:
                     pass
         except ValueError:
@@ -274,10 +306,6 @@ def brute_force_aes(
     _emit("exhausted", current=keys_tested, keys_tested=keys_tested)
     return _make_result(False)
 
-
-# ---------------------------------------------------------------------------
-# Time estimation
-# ---------------------------------------------------------------------------
 
 def estimate_time(key_bits: int, keys_per_second: Optional[float] = None) -> Dict[str, object]:
     """Estimate average and worst-case brute-force duration."""

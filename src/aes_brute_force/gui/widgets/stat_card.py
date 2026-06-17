@@ -21,14 +21,20 @@ class StatCard(ctk.CTkFrame):
         super().__init__(parent, corner_radius=12, fg_color=T.BG_SURFACE)
 
         self._title = ctk.CTkLabel(
-            self, text=title.upper(), font=("Segoe UI", 12, "bold"),
-            text_color=T.FG_SUBTEXT, anchor="w",
+            self,
+            text=title.upper(),
+            font=("Segoe UI", 12, "bold"),
+            text_color=T.FG_SUBTEXT,
+            anchor="w",
         )
         self._title.pack(fill="x", padx=20, pady=(15, 0))
 
         self._value = ctk.CTkLabel(
-            self, text=value, font=("Consolas", 28, "bold"),
-            text_color=accent, anchor="w",
+            self,
+            text=value,
+            font=("Consolas", 28, "bold"),
+            text_color=accent,
+            anchor="w",
         )
         self._value.pack(fill="x", padx=20, pady=(0, 15))
 
@@ -55,14 +61,19 @@ class SidebarButton(ctk.CTkFrame):
         self._active = active
 
         self._icon = ctk.CTkLabel(
-            self, text=icon, font=("Segoe UI", 20),
+            self,
+            text=icon,
+            font=("Segoe UI", 20),
             text_color=T.ACCENT_BLUE if active else T.FG_SUBTEXT,
         )
         self._icon.pack(side="left", padx=(15, 10), pady=10)
 
         self._label = ctk.CTkLabel(
-            self, text=label, font=("Segoe UI", 14, "bold" if active else "normal"),
-            text_color=T.FG_TEXT if active else T.FG_SUBTEXT, anchor="w",
+            self,
+            text=label,
+            font=("Segoe UI", 14, "bold" if active else "normal"),
+            text_color=T.FG_TEXT if active else T.FG_SUBTEXT,
+            anchor="w",
         )
         self._label.pack(side="left", fill="x", expand=True)
 
@@ -79,7 +90,7 @@ class SidebarButton(ctk.CTkFrame):
         self._icon.configure(text_color=T.ACCENT_BLUE if active else T.FG_SUBTEXT)
         self._label.configure(
             text_color=T.FG_TEXT if active else T.FG_SUBTEXT,
-            font=("Segoe UI", 14, "bold" if active else "normal")
+            font=("Segoe UI", 14, "bold" if active else "normal"),
         )
 
     def _on_enter(self, _event) -> None:
