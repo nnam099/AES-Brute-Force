@@ -35,16 +35,6 @@ def multiply(x: int, y: int) -> int:
     return result
 
 
-def _build_mul_table(constant: int) -> tuple[int, ...]:
-    return tuple(multiply(a, constant) for a in range(256))
-
-
-_MUL_09: tuple[int, ...] = _build_mul_table(0x09)
-_MUL_0B: tuple[int, ...] = _build_mul_table(0x0B)
-_MUL_0D: tuple[int, ...] = _build_mul_table(0x0D)
-_MUL_0E: tuple[int, ...] = _build_mul_table(0x0E)
-
-
 def bytes2matrix(data: bytes) -> list[list[int]]:
     return [list(data[i : i + 4]) for i in range(0, AES_BLOCK_SIZE, 4)]
 
@@ -128,11 +118,11 @@ def mix_columns(state: list[list[int]]) -> None:
 
 
 def _inv_mix_column(a: list[int]) -> None:
-    a0, a1, a2, a3 = a[0], a[1], a[2], a[3]
-    a[0] = _MUL_0E[a0] ^ _MUL_0B[a1] ^ _MUL_0D[a2] ^ _MUL_09[a3]
-    a[1] = _MUL_09[a0] ^ _MUL_0E[a1] ^ _MUL_0B[a2] ^ _MUL_0D[a3]
-    a[2] = _MUL_0D[a0] ^ _MUL_09[a1] ^ _MUL_0E[a2] ^ _MUL_0B[a3]
-    a[3] = _MUL_0B[a0] ^ _MUL_0D[a1] ^ _MUL_09[a2] ^ _MUL_0E[a3]
+    u = multiply(a[0], 0x0E) ^ multiply(a[1], 0x0B) ^ multiply(a[2], 0x0D) ^ multiply(a[3], 0x09)
+    v = multiply(a[0], 0x09) ^ multiply(a[1], 0x0E) ^ multiply(a[2], 0x0B) ^ multiply(a[3], 0x0D)
+    w = multiply(a[0], 0x0D) ^ multiply(a[1], 0x09) ^ multiply(a[2], 0x0E) ^ multiply(a[3], 0x0B)
+    x = multiply(a[0], 0x0B) ^ multiply(a[1], 0x0D) ^ multiply(a[2], 0x09) ^ multiply(a[3], 0x0E)
+    a[0], a[1], a[2], a[3] = u, v, w, x
 
 
 def inv_mix_columns(state: list[list[int]]) -> None:
