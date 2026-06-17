@@ -6,7 +6,6 @@ Minh họa AES với khóa ngắn được pad thành 16 bytes.
 
 from __future__ import annotations
 
-import hmac
 import os
 import warnings
 from typing import Optional, Tuple
@@ -68,10 +67,6 @@ RCON: tuple[int, ...] = (
 from aes_brute_force.utils.logging import get_logger
 
 logger = get_logger("aes_engine")
-
-
-def xtime(a: int) -> int:
-    return (((a << 1) ^ 0x1B) & 0xFF) if (a & 0x80) else (a << 1)
 
 
 def multiply(x: int, y: int) -> int:
@@ -226,6 +221,15 @@ def pad(data: bytes, block_size: int = AES_BLOCK_SIZE) -> bytes:
     return data + bytes([pad_len] * pad_len)
 
 
+def _constant_time_compare(val1: bytes, val2: bytes) -> bool:
+    if len(val1) != len(val2):
+        return False
+    result = 0
+    for x, y in zip(val1, val2):
+        result |= x ^ y
+    return result == 0
+
+
 def unpad(data: bytes, block_size: int = AES_BLOCK_SIZE) -> bytes:
     if not data:
         raise ValueError("Empty data.")
@@ -234,7 +238,7 @@ def unpad(data: bytes, block_size: int = AES_BLOCK_SIZE) -> bytes:
         raise ValueError("Invalid padding length.")
 
     expected = bytes([pad_len] * pad_len)
-    if not hmac.compare_digest(data[-pad_len:], expected):
+    if not _constant_time_compare(data[-pad_len:], expected):
         raise ValueError("Invalid padding bytes.")
     return data[:-pad_len]
 
