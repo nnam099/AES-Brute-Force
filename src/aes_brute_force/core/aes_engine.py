@@ -104,12 +104,11 @@ def inv_shift_rows(state: list[list[int]]) -> None:
 
 
 def _mix_column(a: list[int]) -> None:
-    t = a[0] ^ a[1] ^ a[2] ^ a[3]
-    u = a[0]
-    a[0] ^= t ^ xtime(a[0] ^ a[1])
-    a[1] ^= t ^ xtime(a[1] ^ a[2])
-    a[2] ^= t ^ xtime(a[2] ^ a[3])
-    a[3] ^= t ^ xtime(a[3] ^ u)
+    u = multiply(a[0], 0x02) ^ multiply(a[1], 0x03) ^ multiply(a[2], 0x01) ^ multiply(a[3], 0x01)
+    v = multiply(a[0], 0x01) ^ multiply(a[1], 0x02) ^ multiply(a[2], 0x03) ^ multiply(a[3], 0x01)
+    w = multiply(a[0], 0x01) ^ multiply(a[1], 0x01) ^ multiply(a[2], 0x02) ^ multiply(a[3], 0x03)
+    x = multiply(a[0], 0x03) ^ multiply(a[1], 0x01) ^ multiply(a[2], 0x01) ^ multiply(a[3], 0x02)
+    a[0], a[1], a[2], a[3] = u, v, w, x
 
 
 def mix_columns(state: list[list[int]]) -> None:
