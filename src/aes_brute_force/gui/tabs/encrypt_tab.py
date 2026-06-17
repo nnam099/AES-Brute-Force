@@ -1,5 +1,3 @@
-"""Encrypt / Decrypt tab with improved card layout."""
-
 from __future__ import annotations
 
 import tkinter as tk
@@ -11,8 +9,6 @@ from aes_brute_force.gui.widgets.stat_card import StatCard
 
 
 class EncryptTab(ctk.CTkFrame):
-    """Tab 1: encrypt plaintext and display ciphertext."""
-
     def __init__(self, parent: ctk.CTkFrame, app) -> None:
         super().__init__(parent, fg_color="transparent")
         self.app = app

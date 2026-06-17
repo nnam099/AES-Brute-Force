@@ -1,7 +1,3 @@
-"""
-Reusable stat-card widget.
-"""
-
 from __future__ import annotations
 import customtkinter as ctk
 
@@ -9,8 +5,6 @@ from aes_brute_force.gui import theme as T
 
 
 class StatCard(ctk.CTkFrame):
-    """A small card showing a title label and a large value label."""
-
     def __init__(
         self,
         parent: ctk.CTkFrame,
@@ -46,8 +40,6 @@ class StatCard(ctk.CTkFrame):
 
 
 class SidebarButton(ctk.CTkFrame):
-    """A sidebar navigation button with icon + label and active state."""
-
     def __init__(
         self,
         parent: ctk.CTkFrame,

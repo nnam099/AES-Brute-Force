@@ -1,5 +1,3 @@
-"""Theory / reference tab — extracted from gui.py."""
-
 from __future__ import annotations
 
 import tkinter as tk
@@ -71,8 +69,6 @@ Tài liệu:
 
 
 class TheoryTab(ctk.CTkFrame):
-    """Tab 3: AES theory reference notes."""
-
     def __init__(self, parent: ctk.CTkFrame, app=None) -> None:
         super().__init__(parent, fg_color="transparent")
 

@@ -1,10 +1,3 @@
-"""
-Main GUI application — sidebar navigation + page container.
-
-Replaces the ttk.Notebook tabs with a VS Code-style sidebar that gives
-the application a more professional, modern-desktop feel.
-"""
-
 from __future__ import annotations
 import customtkinter as ctk
 from typing import Optional
@@ -17,8 +10,6 @@ from aes_brute_force.gui.widgets.stat_card import SidebarButton
 
 
 class AESBruteForceApp:
-    """Main application window with sidebar navigation."""
-
     def __init__(self, root: ctk.CTk) -> None:
         self.root = root
         self.root.title("AES Brute-Force Demo")

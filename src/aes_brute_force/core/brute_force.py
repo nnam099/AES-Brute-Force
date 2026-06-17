@@ -1,18 +1,3 @@
-"""
-Brute-force key search for AES-128 with reduced key entropy.
-
-Tries every key value from 0 to ``2^key_bits - 1``, decrypts the
-ciphertext, and checks whether the result looks like valid plaintext
-(valid PKCS#7 + high ASCII printable ratio).
-
-Key fixes over the legacy version
-----------------------------------
-* PyCryptodome availability is checked **once** before the loop instead
-  of raising + catching ``ImportError`` on every iteration.
-* ``validate_key_bits`` is imported from ``core.constants`` (DRY).
-* Uses the ``logging`` module instead of bare ``print``.
-"""
-
 from __future__ import annotations
 
 import time
@@ -44,14 +29,12 @@ DetailCallbackType = Callable[[Dict[str, object]], None]
 
 
 def is_valid_plaintext(data: bytes) -> bool:
-    """Return ``True`` if *data* consists of printable ASCII + whitespace."""
     if not data:
         return False
     return all(32 <= b <= 126 or b in (9, 10, 13) for b in data)
 
 
 def score_plaintext(data: bytes) -> float:
-    """Score in [0, 1]: ratio of printable ASCII bytes."""
     if not data:
         return 0.0
     printable = sum(1 for b in data if 32 <= b <= 126 or b in (9, 10, 13))
@@ -59,7 +42,6 @@ def score_plaintext(data: bytes) -> float:
 
 
 def _bruteforce_worker(args: Tuple[int, int, int, bytes, float, bool]) -> Dict[str, object]:
-    """Scan key range ``[start, end)`` — used by ``Pool.imap_unordered``."""
     start, end, key_bits, ciphertext, threshold, fast_mode = args
     key_bytes_len = (key_bits + 7) // 8
 
@@ -107,7 +89,6 @@ def brute_force_aes(
     detail_interval: Optional[int] = None,
     fast_mode: bool = False,
 ) -> Dict[str, object]:
-    """Try all ``2^key_bits`` keys and return the first valid match."""
     validate_key_bits(key_bits)
 
     if not ciphertext or len(ciphertext) % AES_BLOCK_SIZE != 0:
@@ -308,7 +289,6 @@ def brute_force_aes(
 
 
 def estimate_time(key_bits: int, keys_per_second: Optional[float] = None) -> Dict[str, object]:
-    """Estimate average and worst-case brute-force duration."""
     if key_bits <= 0:
         raise ValueError("key_bits must be > 0")
     keyspace = 1 << key_bits

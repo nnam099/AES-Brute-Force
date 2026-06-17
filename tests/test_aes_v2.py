@@ -1,9 +1,3 @@
-"""
-Tests for the AES engine, brute-force logic, and benchmark utilities.
-
-Run: pytest tests/ -v
-"""
-
 import os
 import tempfile
 import unittest
@@ -23,8 +17,6 @@ from aes_brute_force.benchmark.runner import benchmark_key_length, parse_args, r
 
 
 class TestAESEngine(unittest.TestCase):
-    """Core encrypt / decrypt round-trips."""
-
     def test_tc01_8bit(self):
         ct, key, ki = encrypt_aes("A", 8)
         self.assertEqual(decrypt_aes(ct, key), "A")
@@ -58,8 +50,6 @@ class TestAESEngine(unittest.TestCase):
 
 
 class TestNISTVectors(unittest.TestCase):
-    """Validate against official NIST FIPS-197 test vectors."""
-
     def test_appendix_b_encrypt(self):
         key = bytes.fromhex("2b7e151628aed2a6abf7158809cf4f3c")
         pt = bytes.fromhex("3243f6a8885a308d313198a2e0370734")
@@ -156,35 +146,28 @@ class TestBenchmark(unittest.TestCase):
 
 
 class TestEdgeCases(unittest.TestCase):
-    """Edge cases and boundary conditions found in code review."""
-
     def test_key_int_zero(self):
-        """key_int=0 (all-zero key) must encrypt and decrypt correctly."""
         key = key_int_to_bytes(0, 8)
         ct, _, ki = encrypt_aes("ZERO", 8, key=key)
         self.assertEqual(ki, 0)
         self.assertEqual(decrypt_aes(ct, key), "ZERO")
 
     def test_key_int_max(self):
-        """key_int=2^n-1 (max key) must encrypt and decrypt correctly."""
         key = key_int_to_bytes(0xFF, 8)
         ct, _, ki = encrypt_aes("MAX", 8, key=key)
         self.assertEqual(ki, 0xFF)
         self.assertEqual(decrypt_aes(ct, key), "MAX")
 
     def test_unpad_invalid_padding_bytes(self):
-        """unpad should raise ValueError on malformed PKCS#7 padding."""
         bad = bytes(15) + b"\x02"
         with self.assertRaises(ValueError):
             unpad(bad)
 
     def test_unpad_empty(self):
-        """unpad should raise ValueError on empty input."""
         with self.assertRaises(ValueError):
             unpad(b"")
 
     def test_pad_unpad_roundtrip(self):
-        """pad then unpad must be identity for various lengths."""
         import pytest
 
         for n in [1, 15, 16, 17, 31, 32]:
@@ -193,17 +176,14 @@ class TestEdgeCases(unittest.TestCase):
             self.assertEqual(unpad(pad(data)), data)
 
     def test_bf_invalid_ciphertext_empty(self):
-        """brute_force_aes must raise ValueError on empty ciphertext."""
         with self.assertRaises(ValueError):
             brute_force_aes(b"", 8)
 
     def test_bf_invalid_ciphertext_wrong_length(self):
-        """brute_force_aes must raise ValueError when len % 16 != 0."""
         with self.assertRaises(ValueError):
             brute_force_aes(b"\x00" * 15, 8)
 
     def test_bf_key_int_zero(self):
-        """Brute-force must find key_int=0 (first key tried)."""
         key = key_int_to_bytes(0, 8)
         ct, _, ki = encrypt_aes("HELLO", 8, key=key)
         result = brute_force_aes(ct, 8)
@@ -211,7 +191,6 @@ class TestEdgeCases(unittest.TestCase):
         self.assertEqual(result["key_int"], 0)
 
     def test_bf_stop_flag_terminates(self):
-        """stop_flag.set() must terminate brute-force before exhaustion."""
         import threading
 
         ct, _, _ = encrypt_aes("TEST", 16)
@@ -223,7 +202,6 @@ class TestEdgeCases(unittest.TestCase):
         self.assertLess(result["keys_tested"], 65536)
 
     def test_roundtrip_parametrized(self):
-        """Round-trip for multiple (text, bits) combinations."""
         cases = [
             ("A", 8),
             ("Hello World", 12),
@@ -241,43 +219,28 @@ if __name__ == "__main__":
 
 
 class TestSecurity(unittest.TestCase):
-    """Verify security hardening introduced in the review fixes."""
-
     def test_unpad_valid_padding(self):
-        """unpad must return correct data for valid PKCS#7 padding."""
         padded = b"A" + bytes([15] * 15)
         self.assertEqual(unpad(padded), b"A")
 
     def test_unpad_rejects_wrong_byte(self):
-        """unpad must reject padding where one byte differs (timing-safe path).
-
-        Construct a 16-byte block where pad_len=2 (last byte=0x02), but the
-        second-to-last byte is 0x01 instead of 0x02 — so the expected padding
-        [0x02, 0x02] does not match [0x01, 0x02].
-        """
-
         bad = bytes([0xAA] * 14) + bytes([0x01, 0x02])
         with self.assertRaises(ValueError):
             unpad(bad)
 
     def test_pure_aes_key_zeroize(self):
-        """PureAES.clear() must overwrite the internal key buffer with zeros."""
         key = bytes(range(16))
         cipher = PureAES(key)
         cipher.clear()
         self.assertEqual(bytes(cipher._key_buf), bytes(16))
 
     def test_pure_aes_nist_after_refactor(self):
-        """PureAES with bytearray key buf must still pass FIPS-197 Appendix B."""
         key = bytes.fromhex("2b7e151628aed2a6abf7158809cf4f3c")
         pt = bytes.fromhex("3243f6a8885a308d313198a2e0370734")
         expected = bytes.fromhex("3925841d02dc09fbdc118597196a0b32")
         self.assertEqual(PureAES(key).encrypt(pt), expected)
 
     def test_pure_aes_key_buf_independent_of_schedule(self):
-        """key_schedule is pre-expanded from original key, independent of key_buf.
-        This documents expected behavior: clear() zeroes the buffer but the
-        pre-expanded schedule (used for encrypt/decrypt) remains intact."""
         key = bytes.fromhex("2b7e151628aed2a6abf7158809cf4f3c")
         cipher = PureAES(key)
         cipher.clear()

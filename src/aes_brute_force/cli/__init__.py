@@ -1,1 +1,1 @@
-"""CLI entry point."""
+pass

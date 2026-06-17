@@ -1,5 +1,3 @@
-"""Brute-force attack tab with card-based statistics dashboard."""
-
 from __future__ import annotations
 
 import multiprocessing
@@ -15,8 +13,6 @@ from aes_brute_force.gui.widgets.stat_card import StatCard
 
 
 class AttackTab(ctk.CTkFrame):
-    """Tab 2: brute-force key search with dashboard-style progress."""
-
     def __init__(self, parent: ctk.CTkFrame, app) -> None:
         super().__init__(parent, fg_color="transparent")
         self.app = app
@@ -212,7 +208,6 @@ class AttackTab(ctk.CTkFrame):
         self._log_start(bits, ct)
 
         def _safe_after(fn, *args) -> None:
-            """Schedule a UI callback safely — swallows TclError if widget destroyed."""
             try:
                 self.winfo_toplevel().after(0, fn, *args)
             except tk.TclError:

@@ -1,10 +1,3 @@
-"""
-Structured logging for the AES brute-force project.
-
-Replaces ad-hoc ``print()`` calls with the standard ``logging`` module so
-that consumers can control verbosity, format, and output destination.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -17,7 +10,6 @@ LOG_DATE_FORMAT = "%H:%M:%S"
 
 
 def setup_logging(level: int = logging.INFO) -> None:
-    """Configure the root logger once for the whole application."""
     global _CONFIGURED
     if _CONFIGURED:
         return
@@ -32,12 +24,10 @@ def setup_logging(level: int = logging.INFO) -> None:
 
 
 def get_logger(name: str) -> logging.Logger:
-    """Return a child logger under the ``aes_brute_force`` namespace."""
     return logging.getLogger(f"aes_brute_force.{name}")
 
 
 def configure_console() -> None:
-    """Normalize console encoding to UTF-8 on Windows."""
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
             try:

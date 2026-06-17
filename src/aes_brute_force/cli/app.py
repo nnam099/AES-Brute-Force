@@ -1,13 +1,3 @@
-"""
-CLI and GUI entry point for the AES brute-force demo.
-
-Usage::
-
-    python -m aes_brute_force            # GUI (default)
-    python -m aes_brute_force --cli      # CLI mode
-    aes-brute-force --cli --bits 16      # via console_scripts
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -101,7 +91,6 @@ def _check_deps() -> None:
 
 
 def main(argv: Sequence[str] | None = None) -> None:
-    """Application entry point."""
     import logging
 
     configure_console()

@@ -1,10 +1,3 @@
-"""
-Benchmark runner — measure brute-force speed across key lengths.
-
-Each run is saved to a timestamped subdirectory under ``results/`` so
-that previous measurements are never overwritten.
-"""
-
 from __future__ import annotations
 
 import argparse

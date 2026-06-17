@@ -1,1 +1,1 @@
-"""GUI tab components."""
+pass

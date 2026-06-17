@@ -1,11 +1,3 @@
-"""
-AES-128 constants and shared configuration.
-
-Single source of truth for S-box, inverse S-box, round constants,
-and project-wide settings. Eliminates the duplicate ``validate_key_bits``
-that previously lived in both aes_engine and brute_force.
-"""
-
 from __future__ import annotations
 
 
@@ -555,6 +547,5 @@ AES_ROUNDS: int = 10
 
 
 def validate_key_bits(bits: int) -> None:
-    """Raise ``ValueError`` if *bits* is not a supported demo key length."""
     if bits not in SUPPORTED_KEY_BITS:
         raise ValueError(f"Unsupported key length: {bits}. Supported: {SUPPORTED_KEY_BITS}")

@@ -1,10 +1,3 @@
-"""
-Catppuccin Mocha-inspired theme constants and widget factories.
-
-Centralizes all colors, fonts, and widget styling so that individual
-tabs never hard-code hex color values.
-"""
-
 from __future__ import annotations
 
 """
