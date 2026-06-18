@@ -67,7 +67,7 @@ class AESBruteForceApp:
 
         ctk.CTkLabel(
             sidebar,
-            text="Phiên bản 2.0.0\nĐồ án môn Mật mã học",
+            text="Đồ án môn Mật mã học",
             font=("Segoe UI", 12),
             justify="center",
             text_color=T.FG_SUBTEXT,
