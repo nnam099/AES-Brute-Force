@@ -127,7 +127,7 @@ class AESBruteForceApp:
 
         headers = {
             "encrypt": ("Mã hóa / Giải mã", "•  Tạo bản mã từ dữ liệu bí mật"),
-            "attack": ("Vét cạn khóa", "•  Mô phỏng tấn công bằng sức mạnh tính toán"),
+            "attack": ("Vét cạn khóa", "•  Mô phỏng tấn công bằng brute-force"),
             "theory": ("Góc lý thuyết", "•  Tìm hiểu về AES và không gian khóa"),
         }
         title, sub = headers.get(key, ("", ""))
