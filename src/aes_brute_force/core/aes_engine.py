@@ -69,7 +69,8 @@ from aes_brute_force.utils.logging import get_logger
 logger = get_logger("aes_engine")
 
 
-def multiply(x: int, y: int) -> int:
+def _compute_multiply(x: int, y: int) -> int:
+    """Toán học thuần túy: Nhân 2 đa thức trong trường Galois GF(2^8)."""
     result = 0
     for _ in range(8):
         if y & 1:
@@ -80,6 +81,13 @@ def multiply(x: int, y: int) -> int:
             x ^= 0x1B
         y >>= 1
     return result
+
+# Cache trước tất cả các kết quả nhân (256x256) để tăng tốc độ nhưng vẫn giữ logic toán học
+_MUL_TABLE = [[_compute_multiply(x, y) for y in range(256)] for x in range(256)]
+
+def multiply(x: int, y: int) -> int:
+    """Lấy kết quả từ bảng cache O(1) thay vì tính lại từ đầu."""
+    return _MUL_TABLE[x][y]
 
 
 def bytes2matrix(data: bytes) -> list[list[int]]:
