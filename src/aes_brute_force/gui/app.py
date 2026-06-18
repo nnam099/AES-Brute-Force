@@ -20,6 +20,7 @@ class AESBruteForceApp:
         self.shared_ciphertext: Optional[bytes] = None
         self.shared_key_int: Optional[int] = None
         self.shared_key_bits: Optional[int] = None
+        self.shared_plaintext: Optional[str] = None
         self.status_var = ctk.StringVar(value="Sẵn sàng — chọn chức năng từ sidebar")
 
         self._pages: dict[str, ctk.CTkFrame] = {}

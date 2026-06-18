@@ -213,6 +213,9 @@ class AttackTab(ctk.CTkFrame):
             except tk.TclError:
                 pass
 
+        is_fast_mode = self.fast_mode.get()
+        is_verbose = self.verbose_log.get()
+
         def run():
             def cb(cur, total, elapsed):
                 pct = cur / total * 100
@@ -220,7 +223,7 @@ class AttackTab(ctk.CTkFrame):
                 _safe_after(self._update_stats, cur, total, pct, kps, elapsed)
 
             def detail_cb(ev):
-                if not self.verbose_log.get():
+                if not is_verbose:
                     return
                 always = ev.get("event") in ("found", "exhausted", "stopped", "start")
                 now = time.time()
@@ -237,7 +240,8 @@ class AttackTab(ctk.CTkFrame):
                 stop_flag=self._stop_flag,
                 workers=safe_workers,
                 detail_interval=self._detail_interval(bits),
-                fast_mode=self.fast_mode.get(),
+                fast_mode=is_fast_mode,
+                known_plaintext=self.app.shared_plaintext,
             )
             _safe_after(self._on_done, result, bits)
 
@@ -305,6 +309,10 @@ class AttackTab(ctk.CTkFrame):
         self._log(f"  Keyspace      : 2^{bits} = {total:,}")
         if self.app.shared_key_int is not None:
             self._log(f"  Target key    : {self.app.shared_key_int}")
+        if self.app.shared_plaintext is not None:
+            self._log(f"  Known plain   : {self.app.shared_plaintext!r}  ← exact-match mode")
+        else:
+            self._log("  Known plain   : (unknown) ← heuristic score mode")
         self._log(f"{'=' * 60}")
 
     def _log_detail(self, ev) -> None:
@@ -330,7 +338,8 @@ class AttackTab(ctk.CTkFrame):
         elif etype == "chunk_done":
             self._log(f"  [CHUNK] {ev.get('keys_tested'):,}/{total:,} ({pct:.2f}%)")
         elif etype == "found":
-            self._log("  → Valid padding + readable plaintext → ACCEPTED")
+            mode = "exact-match" if self.app.shared_plaintext is not None else "heuristic score"
+            self._log(f"  → Key accepted ({mode}) → FOUND")
 
     def _log_success(self, result, bits) -> None:
         ki = int(result["key_int"])

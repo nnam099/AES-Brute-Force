@@ -166,6 +166,7 @@ class EncryptTab(ctk.CTkFrame):
         self.app.shared_ciphertext = ct
         self.app.shared_key_int = key_int
         self.app.shared_key_bits = bits
+        self.app.shared_plaintext = plaintext  # used by attack tab for exact-match verification
 
         if hasattr(self.app, "attack_tab"):
             self.app.attack_tab.set_ciphertext(bytes_to_hex(ct))

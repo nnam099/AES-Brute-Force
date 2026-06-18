@@ -41,8 +41,8 @@ def score_plaintext(data: bytes) -> float:
     return printable / len(data)
 
 
-def _bruteforce_worker(args: Tuple[int, int, int, bytes, float, bool]) -> Dict[str, object]:
-    start, end, key_bits, ciphertext, threshold, fast_mode = args
+def _bruteforce_worker(args: Tuple[int, int, int, bytes, float, bool, Optional[bytes]]) -> Dict[str, object]:
+    start, end, key_bits, ciphertext, threshold, fast_mode, known_plaintext_bytes = args
     key_bytes_len = (key_bits + 7) // 8
 
     for i in range(start, end):
@@ -56,6 +56,26 @@ def _bruteforce_worker(args: Tuple[int, int, int, bytes, float, bool]) -> Dict[s
                 unpadded = unpad(raw, AES_BLOCK_SIZE)
             except ValueError:
                 continue
+
+            # --- Exact-match mode (known-plaintext attack) ---
+            if known_plaintext_bytes is not None:
+                if unpadded == known_plaintext_bytes:
+                    try:
+                        plaintext = unpadded.decode("utf-8")
+                    except UnicodeDecodeError:
+                        plaintext = unpadded.decode("latin-1")
+                    return {
+                        "found": True,
+                        "key_int": i,
+                        "key_hex": key[:key_bytes_len].hex().upper(),
+                        "key_full_hex": key.hex().upper(),
+                        "plaintext": plaintext,
+                        "plaintext_score": 1.0,
+                        "keys_tested": i - start + 1,
+                    }
+                continue  # wrong key — skip score check entirely
+
+            # --- Heuristic mode (unknown plaintext) ---
             score = score_plaintext(unpadded)
             if score >= threshold:
                 try:
@@ -88,6 +108,7 @@ def brute_force_aes(
     score_threshold: float = DEFAULT_SCORE_THRESHOLD,
     detail_interval: Optional[int] = None,
     fast_mode: bool = False,
+    known_plaintext: Optional[str] = None,
 ) -> Dict[str, object]:
     validate_key_bits(key_bits)
 
@@ -106,8 +127,14 @@ def brute_force_aes(
     keys_tested = 0
     update_interval = max(1, min(100_000, max_keys // 100))
 
+    # Pre-encode known_plaintext once for cheap byte comparison in workers
+    known_plaintext_bytes: Optional[bytes] = (
+        known_plaintext.encode("utf-8") if known_plaintext is not None else None
+    )
+
     if chunk_size == 10_000:
-        chunk_size = max(256, min(chunk_size, max_keys // max(workers, 1)))
+        default_chunk = 10_000 if fast_mode else 500
+        chunk_size = max(256, min(default_chunk, max_keys // max(workers, 1)))
     if detail_interval is None:
         detail_interval = max(1, min(10_000, max_keys // 200))
 
@@ -160,7 +187,15 @@ def brute_force_aes(
 
         safe_workers = max(1, min(workers, cpu_count() or 1))
         ranges = [
-            (i, min(i + chunk_size, max_keys), key_bits, ciphertext, score_threshold, fast_mode)
+            (
+                i,
+                min(i + chunk_size, max_keys),
+                key_bits,
+                ciphertext,
+                score_threshold,
+                fast_mode,
+                known_plaintext_bytes,
+            )
             for i in range(0, max_keys, chunk_size)
         ]
         pool = Pool(processes=safe_workers)
@@ -243,6 +278,34 @@ def brute_force_aes(
             except ValueError:
                 continue
 
+            # --- Exact-match mode (known-plaintext attack) ---
+            if known_plaintext_bytes is not None:
+                if unpadded == known_plaintext_bytes:
+                    try:
+                        plaintext = unpadded.decode("utf-8")
+                    except UnicodeDecodeError:
+                        plaintext = unpadded.decode("latin-1")
+                    _emit(
+                        "found",
+                        current=current,
+                        key_int=i,
+                        key_hex=key_hex,
+                        key_full_hex=key.hex().upper(),
+                        plaintext=plaintext,
+                        plaintext_score=1.0,
+                    )
+                    return _make_result(
+                        True,
+                        key_int=i,
+                        key_hex=key_hex,
+                        key_full_hex=key.hex().upper(),
+                        plaintext=plaintext,
+                        plaintext_score=1.0,
+                        keys_tested=current,
+                    )
+                continue  # wrong key — skip score check entirely
+
+            # --- Heuristic mode (unknown plaintext) ---
             score = score_plaintext(unpadded)
             preview = unpadded[:80].decode("utf-8", errors="replace")
             _emit(
