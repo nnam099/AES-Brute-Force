@@ -1,40 +1,40 @@
 # AES Brute-Force Demo
 
-Demo do an mon Mat Ma Hoc: minh hoa tan cong vet can len AES-128 khi khoa co entropy thap. Loi AES-128 duoc cai dat bang Python thuan, khong dung thu vien ma hoa cho backend mac dinh.
+Demo đồ án môn Mật Mã Học: minh họa tấn công vét cạn lên AES-128 khi khóa có entropy thấp. Lõi AES-128 mặc định được cài đặt bằng Python thuần, không dùng thư viện mã hóa.
 
-> Muc dich cua project la hoc tap va trinh bay. Khong su dung ky thuat nay de tan cong he thong thuc te.
+> Dự án chỉ phục vụ mục đích học tập và trình bày. Không sử dụng kỹ thuật này để tấn công hệ thống thực tế.
 
-## Muc tieu
+## Mục tiêu
 
-- Hieu cach AES-128 xu ly block 16 byte, key schedule va 10 vong bien doi.
-- Thay anh huong cua khong gian khoa `2^n` den thoi gian brute-force.
-- Minh hoa vi sao khoa ngan hoac khoa co entropy thap la khong an toan.
-- So sanh brute-force thuan Python, multiprocessing va fast mode bang PyCryptodome.
-- Ghi nhan rui ro false positive khi doan plaintext bang heuristic.
+- Hiểu cách AES-128 xử lý block 16 byte, key schedule và 10 vòng biến đổi.
+- Thấy ảnh hưởng của không gian khóa `2^n` đến thời gian brute-force.
+- Minh họa vì sao khóa ngắn hoặc khóa có entropy thấp là không an toàn.
+- So sánh brute-force thuần Python, multiprocessing và fast mode bằng PyCryptodome.
+- Ghi nhận rủi ro false positive khi đoán plaintext bằng heuristic.
 
-## Cau truc project
+## Cấu trúc project
 
 ```text
 AES-Brute-Force/
 |-- src/aes_brute_force/
 |   |-- __main__.py                  # python -m aes_brute_force
-|   |-- cli/app.py                   # CLI va entry point mac dinh
+|   |-- cli/app.py                   # CLI và entry point mặc định
 |   |-- core/
-|   |   |-- aes_engine.py            # AES-128 thuan Python, ECB, PKCS#7
+|   |   |-- aes_engine.py            # AES-128 thuần Python, ECB, PKCS#7
 |   |   |-- brute_force.py           # brute-force sequential/multiprocessing/fast mode
-|   |   `-- constants.py             # cau hinh chung, key bits, block size
+|   |   `-- constants.py             # cấu hình chung, key bits, block size
 |   |-- gui/
-|   |   |-- app.py                   # cua so CustomTkinter
-|   |   |-- tabs/encrypt_tab.py      # ma hoa/giai ma demo
-|   |   |-- tabs/attack_tab.py       # vet can khoa, log tien trinh
-|   |   |-- tabs/theory_tab.py       # ghi chu ly thuyet trong GUI
-|   |   |-- theme.py                 # theme mau va font
-|   |   `-- widgets/stat_card.py     # widget thong ke
-|   |-- benchmark/runner.py          # chay benchmark, xuat PNG/JSON
+|   |   |-- app.py                   # cửa sổ CustomTkinter
+|   |   |-- tabs/encrypt_tab.py      # mã hóa/giải mã demo
+|   |   |-- tabs/attack_tab.py       # vét cạn khóa, log tiến trình
+|   |   |-- tabs/theory_tab.py       # ghi chú lý thuyết trong GUI
+|   |   |-- theme.py                 # theme màu và font
+|   |   `-- widgets/stat_card.py     # widget thống kê
+|   |-- benchmark/runner.py          # chạy benchmark, xuất PNG/JSON
 |   `-- utils/logging.py             # logging helper
 |-- tests/
 |   |-- test_aes_v2.py               # test AES, brute-force, benchmark, edge cases
-|   `-- test_false_positive_fix.py   # regression test cho loi false positive
+|   `-- test_false_positive_fix.py   # regression test cho lỗi false positive
 |-- docs/
 |   |-- aes_core_walkthrough.md
 |   |-- aes_theory_notes.md
@@ -46,36 +46,36 @@ AES-Brute-Force/
 `-- README.md
 ```
 
-Ghi chu: project hien dung `pyproject.toml` de khai bao dependency va packaging. Repo khong co `requirements.txt`, `run.bat`, hoac `run.sh`.
+Ghi chú: project hiện dùng `pyproject.toml` để khai báo dependency và packaging. Repo không có `requirements.txt`, `run.bat`, hoặc `run.sh`.
 
-## Cai dat
+## Cài đặt
 
-Yeu cau Python 3.10+.
+Yêu cầu Python 3.10+.
 
 ```bash
 pip install -e .
 ```
 
-Cai them cong cu dev va fast backend:
+Cài thêm công cụ dev và fast backend:
 
 ```bash
 pip install -e ".[dev]"
 ```
 
-Chi cai fast backend:
+Chỉ cài fast backend:
 
 ```bash
 pip install -e ".[fast]"
 ```
 
-Dependency chinh:
+Dependency chính:
 
 - `customtkinter`: GUI.
 - `matplotlib`: benchmark chart.
-- `pycryptodome`: optional fast mode va dev tests.
+- `pycryptodome`: optional fast mode và dev tests.
 - `pytest`, `pytest-cov`, `ruff`: optional dev tools.
 
-## Chay ung dung
+## Chạy ứng dụng
 
 ### GUI
 
@@ -83,17 +83,17 @@ Dependency chinh:
 python -m aes_brute_force
 ```
 
-Hoac sau khi cai package:
+Hoặc sau khi cài package:
 
 ```bash
 aes-brute-force
 ```
 
-GUI gom 3 man hinh:
+GUI gồm 3 màn hình:
 
-- Ma hoa & Giai ma: nhap plaintext, chon do dai entropy, tao ciphertext.
-- Vet can: nhan ciphertext hex, chay brute-force, hien progress/log.
-- Goc ly thuyet: tom tat AES va keyspace.
+- Mã hóa & Giải mã: nhập plaintext, chọn độ dài entropy, tạo ciphertext.
+- Vét cạn: nhận ciphertext hex, chạy brute-force, hiển thị progress/log.
+- Góc lý thuyết: tóm tắt AES và keyspace.
 
 ### CLI
 
@@ -101,7 +101,7 @@ GUI gom 3 man hinh:
 python -m aes_brute_force --cli --text SECRET --bits 16
 ```
 
-Fast mode bang PyCryptodome:
+Fast mode bằng PyCryptodome:
 
 ```bash
 python -m aes_brute_force --cli --text SECRET --bits 20 --fast
@@ -119,19 +119,19 @@ Debug logging:
 python -m aes_brute_force --cli --bits 16 --verbose
 ```
 
-Tham so CLI:
+Tham số CLI:
 
-| Flag | Y nghia | Mac dinh |
+| Flag | Ý nghĩa | Mặc định |
 |---|---|---|
-| `--cli` | Chay che do dong lenh | `False` |
-| `--gui` | Ep chay GUI | `False` |
-| `--text TEXT` | Plaintext de ma hoa trong CLI | `SECRET` |
-| `--bits {8,12,16,20,24,32}` | So bit entropy cua khoa | `16` |
-| `--workers N` | So process cho brute-force | `1` |
-| `--fast` | Dung PyCryptodome backend | `False` |
-| `-v`, `--verbose` | Bat debug logging | `False` |
+| `--cli` | Chạy chế độ dòng lệnh | `False` |
+| `--gui` | Ép chạy GUI | `False` |
+| `--text TEXT` | Plaintext để mã hóa trong CLI | `SECRET` |
+| `--bits {8,12,16,20,24,32}` | Số bit entropy của khóa | `16` |
+| `--workers N` | Số process cho brute-force | `1` |
+| `--fast` | Dùng PyCryptodome backend | `False` |
+| `-v`, `--verbose` | Bật debug logging | `False` |
 
-## Luong chay chinh
+## Luồng chạy chính
 
 Entry point:
 
@@ -143,45 +143,45 @@ python -m aes_brute_force
 
 Trong `main()`:
 
-1. Parse tham so dong lenh bang `argparse`.
-2. Cau hinh logging va console UTF-8.
-3. Kiem tra dependency `matplotlib`.
-4. Neu khong co `--cli`, thu mo GUI.
-5. Neu chay CLI, thuc hien:
+1. Parse tham số dòng lệnh bằng `argparse`.
+2. Cấu hình logging và console UTF-8.
+3. Kiểm tra dependency `matplotlib`.
+4. Nếu không có `--cli`, thử mở GUI.
+5. Nếu chạy CLI, thực hiện:
    - `encrypt_aes(text, bits)`;
    - `brute_force_aes(ciphertext, bits, ...)`;
-   - in khoa tim duoc, plaintext, thoi gian va toc do.
+   - in khóa tìm được, plaintext, thời gian và tốc độ.
 
 ## AES engine
 
-File quan trong: `src/aes_brute_force/core/aes_engine.py`.
+File quan trọng: `src/aes_brute_force/core/aes_engine.py`.
 
-Project cai dat AES-128 tu dau:
+Project cài đặt AES-128 từ đầu:
 
 - Block size: 16 byte.
 - Key size: 16 byte.
-- So vong AES-128: 10.
+- Số vòng AES-128: 10.
 - Mode demo: ECB.
 - Padding: PKCS#7.
 
-Nhung ham nen hoc theo thu tu:
+Những hàm nên học theo thứ tự:
 
-1. `pad()` va `unpad()`: them/kiem tra padding PKCS#7.
-2. `generate_short_key()` va `key_int_to_bytes()`: bien khoa ngan thanh khoa AES-128.
-3. `bytes2matrix()` va `matrix2bytes()`: chuyen block 16 byte sang state.
-4. `sub_bytes()`, `shift_rows()`, `mix_columns()`, `add_round_key()`: cac buoc AES.
-5. `key_expansion()`: sinh 44 word khoa vong.
-6. `encrypt_block()` va `decrypt_block()`: ma hoa/giai ma mot block.
-7. `PureAES.encrypt()` va `PureAES.decrypt()`: xu ly nhieu block.
-8. `encrypt_aes()` va `decrypt_aes()`: API tien loi cho project.
+1. `pad()` và `unpad()`: thêm/kiểm tra padding PKCS#7.
+2. `generate_short_key()` và `key_int_to_bytes()`: biến khóa ngắn thành khóa AES-128.
+3. `bytes2matrix()` và `matrix2bytes()`: chuyển block 16 byte sang state.
+4. `sub_bytes()`, `shift_rows()`, `mix_columns()`, `add_round_key()`: các bước AES.
+5. `key_expansion()`: sinh 44 word khóa vòng.
+6. `encrypt_block()` và `decrypt_block()`: mã hóa/giải mã một block.
+7. `PureAES.encrypt()` và `PureAES.decrypt()`: xử lý nhiều block.
+8. `encrypt_aes()` và `decrypt_aes()`: API tiện lợi cho project.
 
-Luu y: key material trong `PureAES` duoc luu trong `_key_buf` va co ham `clear()` de zeroize buffer nay. Key schedule van ton tai de phuc vu ma hoa/giai ma.
+Lưu ý: key material trong `PureAES` được lưu trong `_key_buf` và có hàm `clear()` để zeroize buffer này. Key schedule vẫn tồn tại để phục vụ mã hóa/giải mã.
 
-## Cau truc khoa entropy thap
+## Cấu trúc khóa entropy thấp
 
-AES-128 yeu cau khoa 16 byte. De brute-force trong demo, project chi cho `n` bit dau la bi mat, phan con lai la zero.
+AES-128 yêu cầu khóa 16 byte. Để brute-force trong demo, project chỉ cho `n` bit đầu là bí mật, phần còn lại là zero.
 
-Vi du khoa 16 bit:
+Ví dụ khóa 16 bit:
 
 ```text
 key_int       = 0xABCD
@@ -189,12 +189,12 @@ AES-128 key   = AB CD 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 keyspace      = 2^16 = 65,536
 ```
 
-Ham lien quan:
+Hàm liên quan:
 
 - `generate_short_key(bits, key_int=None)`
 - `key_int_to_bytes(key_int, key_bits)`
 
-Supported key bits hien tai:
+Supported key bits hiện tại:
 
 ```text
 8, 12, 16, 20, 24, 32
@@ -202,9 +202,9 @@ Supported key bits hien tai:
 
 ## Brute-force logic
 
-File quan trong: `src/aes_brute_force/core/brute_force.py`.
+File quan trọng: `src/aes_brute_force/core/brute_force.py`.
 
-Thuat toan co ban:
+Thuật toán cơ bản:
 
 ```python
 for i in range(2 ** key_bits):
@@ -215,125 +215,125 @@ for i in range(2 ** key_bits):
         return key
 ```
 
-`brute_force_aes()` ho tro:
+`brute_force_aes()` hỗ trợ:
 
 - Sequential mode khi `workers=1`.
 - Multiprocessing khi `workers > 1`.
-- Fast mode khi `fast_mode=True` va da cai `pycryptodome`.
+- Fast mode khi `fast_mode=True` và đã cài `pycryptodome`.
 - Progress callback qua `callback`.
-- Log chi tiet qua `detail_callback`.
+- Log chi tiết qua `detail_callback`.
 - Stop flag cho GUI.
 - Exact-match mode qua `known_plaintext`.
 
-### Hai cach nhan dien plaintext
+### Hai cách nhận diện plaintext
 
 1. Exact-match mode:
 
-Khi `known_plaintext` duoc truyen vao, project so sanh byte-to-byte:
+Khi `known_plaintext` được truyền vào, project so sánh byte-to-byte:
 
 ```text
 unpadded == known_plaintext.encode("utf-8")
 ```
 
-Day la cach GUI dung khi ciphertext duoc tao tu tab Ma hoa. Cach nay tranh nhan nham khoa sai.
+Đây là cách GUI dùng khi ciphertext được tạo từ tab Mã hóa. Cách này tránh nhận nhầm khóa sai.
 
 2. Heuristic mode:
 
-Khi khong biet plaintext, project dung:
+Khi không biết plaintext, project dùng:
 
-- PKCS#7 padding hop le.
-- Diem ASCII printable >= `DEFAULT_SCORE_THRESHOLD`, hien la `0.9`.
+- PKCS#7 padding hợp lệ.
+- Điểm ASCII printable >= `DEFAULT_SCORE_THRESHOLD`, hiện là `0.9`.
 
-Heuristic co the bi false positive. Vi vay repo co file `tests/test_false_positive_fix.py` de ghi lai bug cu: mot khoa sai co the giai ma ra chuoi printable va vuot threshold.
+Heuristic có thể bị false positive. Vì vậy repo có file `tests/test_false_positive_fix.py` để ghi lại bug cũ: một khóa sai có thể giải mã ra chuỗi printable và vượt threshold.
 
 ## GUI flow
 
-File chinh: `src/aes_brute_force/gui/app.py`.
+File chính: `src/aes_brute_force/gui/app.py`.
 
-Luong GUI:
+Luồng GUI:
 
-1. `AESBruteForceApp` tao sidebar va 3 page.
+1. `AESBruteForceApp` tạo sidebar và 3 page.
 2. `EncryptTab`:
-   - nguoi dung nhap plaintext;
-   - chon key bits;
-   - tuy chon fixed key;
-   - goi `encrypt_aes()`;
-   - luu `shared_ciphertext`, `shared_key_int`, `shared_key_bits`, `shared_plaintext`;
+   - người dùng nhập plaintext;
+   - chọn key bits;
+   - tùy chọn fixed key;
+   - gọi `encrypt_aes()`;
+   - lưu `shared_ciphertext`, `shared_key_int`, `shared_key_bits`, `shared_plaintext`;
    - copy ciphertext sang `AttackTab`.
 3. `AttackTab`:
-   - doc ciphertext hex;
-   - chon bits;
-   - chay `brute_force_aes()` trong background thread;
-   - dung multiprocessing voi so worker gan bang CPU count - 1;
-   - cap nhat card, progress bar, log;
-   - truyen `known_plaintext=self.app.shared_plaintext` neu co.
+   - đọc ciphertext hex;
+   - chọn bits;
+   - chạy `brute_force_aes()` trong background thread;
+   - dùng multiprocessing với số worker gần bằng CPU count - 1;
+   - cập nhật card, progress bar, log;
+   - truyền `known_plaintext=self.app.shared_plaintext` nếu có.
 4. `TheoryTab`:
-   - hien ghi chu ly thuyet AES va brute-force.
+   - hiển thị ghi chú lý thuyết AES và brute-force.
 
 ## Benchmark
 
-File chinh: `src/aes_brute_force/benchmark/runner.py`.
+File chính: `src/aes_brute_force/benchmark/runner.py`.
 
-Chay benchmark mac dinh:
+Chạy benchmark mặc định:
 
 ```bash
 python -m aes_brute_force.benchmark.runner --bits 8 12 16 --text SECRET
 ```
 
-Vi du voi fixed key:
+Ví dụ với fixed key:
 
 ```bash
 python -m aes_brute_force.benchmark.runner --bits 8 12 16 --text SECRET --key-int 0x2A
 ```
 
-Tat output file:
+Tắt output file:
 
 ```bash
 python -m aes_brute_force.benchmark.runner --bits 8 --no-plot --no-json
 ```
 
-Tham so benchmark:
+Tham số benchmark:
 
-| Flag | Y nghia | Mac dinh |
+| Flag | Ý nghĩa | Mặc định |
 |---|---|---|
-| `--bits` | Danh sach bit entropy can do | `8 12 16` |
+| `--bits` | Danh sách bit entropy cần đo | `8 12 16` |
 | `--text TEXT` | Plaintext benchmark | `SECRET` |
-| `--workers N` | So process brute-force | `1` |
-| `--key-int VALUE` | Khoa co dinh, ho tro dec/hex | random |
-| `--output-dir DIR` | Thu muc luu ket qua | `results/benchmark_YYYYMMDD_HHMMSS/` |
-| `--output FILE` | Duong dan chart PNG | `benchmark_chart.png` |
-| `--json FILE` | Duong dan JSON | `benchmark_data.json` |
-| `--no-plot` | Khong xuat chart | `False` |
-| `--no-json` | Khong xuat JSON | `False` |
+| `--workers N` | Số process brute-force | `1` |
+| `--key-int VALUE` | Khóa cố định, hỗ trợ dec/hex | random |
+| `--output-dir DIR` | Thư mục lưu kết quả | `results/benchmark_YYYYMMDD_HHMMSS/` |
+| `--output FILE` | Đường dẫn chart PNG | `benchmark_chart.png` |
+| `--json FILE` | Đường dẫn JSON | `benchmark_data.json` |
+| `--no-plot` | Không xuất chart | `False` |
+| `--no-json` | Không xuất JSON | `False` |
 
-Ket qua hien co trong `results/`:
+Kết quả hiện có trong `results/`:
 
 - `benchmark_chart.png`
 - `benchmark_data.json`
 
-Du lieu benchmark da luu cho thay Pure Python dat khoang 1,300-1,400 keys/s tren cac lan do 8, 12, 16 bit.
+Dữ liệu benchmark đã lưu cho thấy Pure Python đạt khoảng 1,300-1,400 keys/s trên các lần đo 8, 12, 16 bit.
 
 ## Tests
 
-Chay toan bo test:
+Chạy toàn bộ test:
 
 ```bash
 pytest -q
 ```
 
-Chay test chinh:
+Chạy test chính:
 
 ```bash
 pytest tests/test_aes_v2.py -v
 ```
 
-Chay regression false positive:
+Chạy regression false positive:
 
 ```bash
 pytest tests/test_false_positive_fix.py -v
 ```
 
-Chay theo nhom:
+Chạy theo nhóm:
 
 ```bash
 pytest tests/test_aes_v2.py -v -k "NIST"
@@ -341,11 +341,11 @@ pytest tests/test_aes_v2.py -v -k "BruteForce"
 pytest tests/test_aes_v2.py -v -k "Benchmark"
 ```
 
-Pham vi test hien co:
+Phạm vi test hiện có:
 
-- Round-trip ma hoa/giai ma voi key 8, 16, 24, 32 bit.
+- Round-trip mã hóa/giải mã với key 8, 16, 24, 32 bit.
 - NIST FIPS-197 known answer tests.
-- PKCS#7 padding hop le/khong hop le.
+- PKCS#7 padding hợp lệ/không hợp lệ.
 - Hex conversion.
 - Wrong key.
 - Brute-force 8/12 bit.
@@ -358,47 +358,47 @@ Pham vi test hien co:
 - Heuristic mode.
 - Zeroize `_key_buf`.
 
-## Bao mat va gioi han
+## Bảo mật và giới hạn
 
-- Day la demo giao duc, khong phai cong cu tan cong thuc te.
-- AES-128 day du voi `2^128` khoa la khong the brute-force bang may tinh thong thuong.
-- Project brute-force duoc vi co tinh giam entropy khoa xuong 8-32 bit.
-- ECB khong an toan trong ung dung thuc te vi lo mau lap lai cua plaintext.
-- Heuristic plaintext co the nhan nham khoa sai; khi biet plaintext nen dung exact-match.
-- Khong co authentication/MAC, nen khong bao ve tinh toan ven ciphertext.
+- Đây là demo giáo dục, không phải công cụ tấn công thực tế.
+- AES-128 đầy đủ với `2^128` khóa là không thể brute-force bằng máy tính thông thường.
+- Project brute-force được vì cố tình giảm entropy khóa xuống 8-32 bit.
+- ECB không an toàn trong ứng dụng thực tế vì lộ mẫu lặp lại của plaintext.
+- Heuristic plaintext có thể nhận nhầm khóa sai; khi biết plaintext nên dùng exact-match.
+- Không có authentication/MAC, nên không bảo vệ tính toàn vẹn ciphertext.
 
-Trong he thong thuc te nen dung AES-GCM hoac che do ma hoa co xac thuc, voi khoa du entropy, nonce/IV dung cach va thu vien mat ma da duoc kiem dinh.
+Trong hệ thống thực tế nên dùng AES-GCM hoặc chế độ mã hóa có xác thực, với khóa đủ entropy, nonce/IV dùng đúng cách và thư viện mật mã đã được kiểm định.
 
-## Lo trinh hoc project
+## Lộ trình học project
 
-1. Chay CLI 8 bit:
+1. Chạy CLI 8 bit:
 
    ```bash
    python -m aes_brute_force --cli --text SECRET --bits 8
    ```
 
-2. Tang len 12/16 bit de thay thoi gian tang theo `2^n`.
-3. Doc `aes_engine.py` tu padding, state, round function den `PureAES`.
-4. Doc `brute_force.py`, dac biet `known_plaintext`, `score_plaintext`, multiprocessing.
-5. Chay GUI va quan sat Encrypt tab copy ciphertext sang Attack tab.
-6. Chay benchmark va doc JSON/chart trong `results/`.
-7. Doc tests NIST de hieu cach chung minh AES implementation dung.
-8. Doc `test_false_positive_fix.py` de hieu rui ro khi dung heuristic.
+2. Tăng lên 12/16 bit để thấy thời gian tăng theo `2^n`.
+3. Đọc `aes_engine.py` từ padding, state, round function đến `PureAES`.
+4. Đọc `brute_force.py`, đặc biệt `known_plaintext`, `score_plaintext`, multiprocessing.
+5. Chạy GUI và quan sát Encrypt tab copy ciphertext sang Attack tab.
+6. Chạy benchmark và đọc JSON/chart trong `results/`.
+7. Đọc tests NIST để hiểu cách chứng minh AES implementation đúng.
+8. Đọc `test_false_positive_fix.py` để hiểu rủi ro khi dùng heuristic.
 
-## Cong nghe
+## Công nghệ
 
-| Thanh phan | Cong nghe |
+| Thành phần | Công nghệ |
 |---|---|
-| AES-128 | Python thuan |
+| AES-128 | Python thuần |
 | GUI | CustomTkinter |
 | Benchmark chart | matplotlib |
 | Fast mode | PyCryptodome optional |
 | Song song | multiprocessing |
 | Test | pytest + unittest style |
-| Packaging | setuptools voi `src/` layout |
+| Packaging | setuptools với `src/` layout |
 | CI | GitHub Actions |
 
-## Tai lieu tham khao
+## Tài liệu tham khảo
 
 1. NIST FIPS-197, Advanced Encryption Standard.
 2. William Stallings, Cryptography and Network Security.
