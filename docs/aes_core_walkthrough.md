@@ -88,15 +88,11 @@ def shift_rows(state: list[list[int]]) -> None:
 * **Khái niệm:** Coi mỗi cột là một đa thức bậc 3 trên trường $GF(2^8)$ và nhân nó với một đa thức cố định $c(x) = \{03\}x^3 + \{01\}x^2 + \{01\}x + \{02\} \pmod{x^4 + 1}$.
 * **Toán học trên trường Galois $GF(2^8)$:** 
   * Phép cộng là phép XOR (`^`).
-  * Phép nhân với $\{02\}$ được thực hiện bằng hàm `xtime(a)` (nếu bit cao nhất bằng 1 thì dịch trái rồi XOR với đa thức bất khả quy `0x1B`).
+  * Phép nhân được thực hiện bằng thuật toán nhân nhị phân trong trường $GF(2^8)$. Khi byte trung gian có bit cao nhất bằng 1, chương trình dịch trái rồi XOR với đa thức bất khả quy `0x1B`.
 
 ```python
-def xtime(a: int) -> int:
-    # Nhân với 2 (tức là x) trong GF(2^8)
-    return (((a << 1) ^ 0x1B) & 0xFF) if (a & 0x80) else (a << 1)
-
-def multiply(x: int, y: int) -> int:
-    # Nhân hai số bất kỳ trong GF(2^8) bằng thuật toán nhân nông dân (Russian Peasant)
+def _compute_multiply(x: int, y: int) -> int:
+    # Nhân hai byte trong GF(2^8)
     result = 0
     for _ in range(8):
         if y & 1:
@@ -107,9 +103,14 @@ def multiply(x: int, y: int) -> int:
             x ^= 0x1B
         y >>= 1
     return result
+
+_MUL_TABLE = [[_compute_multiply(x, y) for y in range(256)] for x in range(256)]
+
+def multiply(x: int, y: int) -> int:
+    return _MUL_TABLE[x][y]
 ```
 
-Trong thực tế để tăng tốc độ giải mã (MixColumns ngược), dự án sử dụng các bảng nhân được tính toán trước (Table Lookups) như `_MUL_0E`, `_MUL_0B`, `_MUL_0D`, `_MUL_09`.
+Để tăng tốc cả `MixColumns` và `InvMixColumns`, dự án tính trước toàn bộ bảng nhân 256x256 trong `_MUL_TABLE`. Vì vậy mỗi phép nhân trong AES chỉ còn là một lần tra bảng O(1), thay vì tính lại từ đầu cho từng byte.
 
 ---
 
